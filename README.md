@@ -1,2 +1,2 @@
 # Kuiz
-Quiz app project
+Kuiz — Your questions. Your game
