@@ -30,7 +30,9 @@ work (with skills like `tdd`, `code-review`) begin.
 
 ## Tracking what's done
 
-- **Board (kanban)**: the GitHub Project for this repo — Todo / In Progress / Done.
+- **Board (kanban)**: [Kuiz v1 Spec project](https://github.com/users/EnzoFab/projects/1) —
+  Todo / In Progress / Done. Cards do **not** move automatically; when working a ticket,
+  move its card yourself (see Rules below).
 - **Frontier (what's workable now)** — open tickets with no open blocker and no assignee:
 
   ```bash
@@ -44,10 +46,19 @@ work (with skills like `tdd`, `code-review`) begin.
 ## Rules of the map
 
 - **One ticket per working session** (research tickets are the only exception).
-- **Claim before working**: `gh issue edit <n> --repo EnzoFab/Kuiz --add-assignee @me`.
-- **On resolve**: `gh issue comment <n>` with the answer, `gh issue close <n>`, and add a
-  one-line gist + link to the map's **Decisions so far** ([#1](https://github.com/EnzoFab/Kuiz/issues/1)).
-- Resolving a ticket may unblock others or graduate fog into new tickets — expected.
+- **Claim before working**: `gh issue edit <n> --repo EnzoFab/Kuiz --add-assignee @me`, and
+  move its board card to **In Progress**.
+- **On resolve**: `gh issue comment <n>` with the answer, `gh issue close <n>`, move its
+  board card to **Done**, and add a one-line gist + link to the map's **Decisions so far**
+  ([#1](https://github.com/EnzoFab/Kuiz/issues/1)).
+- Resolving a ticket may unblock others or graduate fog into new tickets — expected. Add new
+  tickets as sub-issues of #1 and to the board.
+
+Board plumbing (for moving a card): project `PVT_kwHOAbYXFc4BkyZj`, Status field
+`PVTSSF_lAHOAbYXFc4BkyZjzhjhtY0` (options: Todo `f75ad846`, In Progress `47fc9ee4`,
+Done `98236657`). Find an item id with
+`gh project item-list 1 --owner EnzoFab --format json`, then
+`gh project item-edit --id <itemId> --project-id <projId> --field-id <fieldId> --single-select-option-id <optId>`.
 
 A human-readable snapshot of the map lives at
 [.scratch/kuiz-v1-spec/map.md](.scratch/kuiz-v1-spec/map.md) (does not auto-update; GitHub
