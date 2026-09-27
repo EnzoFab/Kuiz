@@ -73,6 +73,11 @@ One instance of a Game being played. Has a lifecycle: create → join → play �
 online Session is realtime; scoring updates as play advances.
 _Avoid_: Match, room, lobby, instance (a lobby is a phase of a Session).
 
+**Join mode**:
+How players enter an online Session, chosen at creation. **Open**: anyone with the link + code
+joins with a nickname (unlimited players). **Private**: the Game Master pre-creates the roster
+of player names, and a joiner **claims** an unclaimed slot from that list.
+
 **Game Master**:
 The person who authors a Game and hosts its Session.
 _Avoid_: Host, admin, creator, GM in modelled names (write it out).
