@@ -13,13 +13,25 @@ changing the core engine, while new sub-games and games are pure composition (no
 **Brick**:
 The atomic, code-backed capability — the single unit that carries code and the only thing an
 extension needs to add. Each Brick owns its own authoring form, display, and play logic, and
-may wrap an external integration (e.g. Spotify). Examples: a question (see **Answer type**),
-play sound / music / video, display image, timer, an API-integration brick.
+may wrap an external integration (e.g. Spotify). Its logic is a pure reducer
+(`init`/`reduce`/`isComplete`/`outcome`) over plain-JSON state; see
+`docs/spec/brick-contract.md`. Examples: a question (see **Answer type**), play sound / music
+/ video, display image, timer, an API-integration brick.
 _Avoid_: Piece, block, component, node (all mean Brick; "piece" is fine in casual prose).
+
+**Interactive brick / Presentational brick**:
+A Brick is one of two kinds. An **interactive** Brick collects player input and emits an
+outcome (e.g. a question). A **presentational** (read-only) Brick just presents something and
+emits no outcome (e.g. display image, play sound), completing on a timer or a next action.
 
 **Answer type**:
 The kind of answer a question Brick accepts — free text, single select, multiple select,
 true/false, buzzer, etc. A shared option set any question Brick can use.
+
+**Answer checker**:
+The strategy a question Brick uses to grade a free-text answer — `exact`, `fuzzy` (tolerant of
+spelling, pure), or `ai` (semantic, runs via the Brick's server handler). Produces a match
+score the Segment turns into points.
 
 **Segment**:
 A node in a Game's composition tree: **either a single Brick (leaf) or an ordered set of
