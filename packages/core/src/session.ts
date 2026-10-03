@@ -36,8 +36,9 @@ export type SessionEvent =
   | { type: "START" }
   | { type: "PLAYER_JOINED"; playerId: string; nickname: string }
   | { type: "PLAYER_LEFT"; playerId: string }
-  | { type: "PLAYER_INPUT"; playerId: string; input: unknown }
+  | { type: "PLAYER_INPUT"; playerId: string; input: unknown; now?: number }
   | { type: "TICK"; now: number }
+  | { type: "REVEAL" }
   | { type: "SERVER_RESULT"; payload: unknown }
   | { type: "ADVANCE"; source: "auto" | "host" }
   | { type: "END" };
