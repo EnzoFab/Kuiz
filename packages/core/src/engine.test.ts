@@ -90,9 +90,9 @@ describe("flow engine", () => {
   it("tracks players joining and leaving", () => {
     let s = initSession(game, { mode: "online" });
     s = step(s, { type: "PLAYER_JOINED", playerId: "A", nickname: "Al" });
-    expect(s.players.A).toEqual({ nickname: "Al", connected: true });
+    expect(s.players.A).toEqual({ nickname: "Al", isConnected: true });
     s = step(s, { type: "PLAYER_LEFT", playerId: "A" });
-    expect(s.players.A.connected).toBe(false);
+    expect(s.players.A.isConnected).toBe(false);
   });
 
   it("state stays serializable (JSON round-trips)", () => {

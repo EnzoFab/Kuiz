@@ -6,7 +6,7 @@ export type Phase = "lobby" | "playing" | "results";
 
 export interface Player {
   nickname: string;
-  connected: boolean;
+  isConnected: boolean;
 }
 
 /**
