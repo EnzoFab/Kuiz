@@ -1,9 +1,9 @@
 /**
  * @kuiz/core — the pure, shared domain layer.
  *
- * Will hold the game-definition schema, the flow engine (reduceSession), session
- * types, scoring, and the Brick contract interfaces. See docs/spec/*. No UI, no I/O.
- *
- * B1 scaffold: placeholder export so the package builds and is importable.
+ * Holds the game-definition schema (B2), and will hold the flow engine (reduceSession),
+ * session types, scoring, and the Brick contract interfaces. See docs/spec/*. No UI, no I/O.
  */
 export const CORE_VERSION = "0.0.0";
+
+export * from "./schema.js";
