@@ -8,16 +8,23 @@ import { SessionStore } from "./sessions.js";
 import { attachRealtime } from "./realtime.js";
 import { demoGame } from "./demo.js";
 
-describe("realtime shell", () => {
+interface JoinResult {
+  sessionId?: string;
+  code?: string;
+  playerId?: string;
+  hostId?: string;
+  error?: string;
+}
+
+describe("realtime lifecycle", () => {
   const app = buildApp();
   const store = new SessionStore(brickRegistry.resolver());
-  const session = store.create(demoGame);
   let io: ReturnType<typeof attachRealtime>;
   let url: string;
 
   beforeAll(async () => {
     await app.listen({ port: 0, host: "127.0.0.1" });
-    io = attachRealtime(app.server, store);
+    io = attachRealtime(app.server, store, () => demoGame);
     const { port } = app.server.address() as AddressInfo;
     url = `http://127.0.0.1:${port}`;
   });
@@ -33,46 +40,61 @@ describe("realtime shell", () => {
       socket.on("connect", () => resolve(socket));
     });
 
-  it("a client connects, joins by code, and receives synced state", async () => {
-    const client = await connect();
-    const joined = new Promise<{ playerId: string }>((resolve) => client.on("joined", resolve));
-    const stateEvent = new Promise<{ state: SessionState }>((resolve) => client.on("state", resolve));
+  const emit = <T>(socket: Socket, event: string, payload: unknown): Promise<T> =>
+    new Promise((resolve) => socket.emit(event, payload, resolve));
 
-    client.emit("join", { code: session.code, nickname: "Al" });
+  it("host creates, player joins, host starts, and both see playing state with scores", async () => {
+    const host = await connect();
+    const created = await emit<JoinResult>(host, "create", { nickname: "GM" });
+    expect(created.code).toMatch(/^[A-Z0-9]{4}$/);
+    expect(created.hostId).toBe(created.playerId);
 
-    const { playerId } = await joined;
-    const { state } = await stateEvent;
+    const player = await connect();
+    const joined = await emit<JoinResult>(player, "join", { code: created.code, nickname: "Al" });
+    expect(joined.sessionId).toBe(created.sessionId);
+    expect(joined.hostId).toBe(created.hostId);
 
-    expect(state.players[playerId]).toEqual({ nickname: "Al", isConnected: true });
-    client.close();
-  });
-
-  it("broadcasts state to everyone in the session room on an event", async () => {
-    const a = await connect();
-    const b = await connect();
-    await new Promise<void>((resolve) => {
-      a.on("joined", () => resolve());
-      a.emit("join", { code: session.code, nickname: "A" });
-    });
-    const sessionId = store.getByCode(session.code)!.id;
-    await new Promise<void>((resolve) => {
-      b.on("joined", () => resolve());
-      b.emit("join", { code: session.code, nickname: "B" });
-    });
-
-    // B should receive a broadcast when A triggers an event (START moves phase to playing).
-    const bSawPlaying = new Promise<SessionState>((resolve) => {
-      b.on("state", ({ state }: { state: SessionState }) => {
+    // Player should receive playing state after the host starts.
+    const playerPlaying = new Promise<SessionState>((resolve) => {
+      player.on("state", ({ state }: { state: SessionState }) => {
         if (state.phase === "playing") {
           resolve(state);
         }
       });
     });
-    a.emit("event", { sessionId, event: { type: "START" } });
-    const state = await bSawPlaying;
+    host.emit("event", { event: { type: "START" } });
+    const state = await playerPlaying;
     expect(state.phase).toBe("playing");
+    expect(Object.keys(state.players)).toContain(joined.playerId);
 
-    a.close();
-    b.close();
+    host.close();
+    player.close();
+  });
+
+  it("rejoining with the same playerId reconnects rather than duplicating", async () => {
+    const host = await connect();
+    const created = await emit<JoinResult>(host, "create", { nickname: "GM" });
+
+    const p1 = await connect();
+    const j1 = await emit<JoinResult>(p1, "join", { code: created.code, nickname: "Al" });
+    p1.close();
+
+    const p2 = await connect();
+    const j2 = await emit<JoinResult>(p2, "join", {
+      code: created.code,
+      nickname: "Al",
+      playerId: j1.playerId,
+    });
+    expect(j2.playerId).toBe(j1.playerId); // same identity restored
+
+    host.close();
+    p2.close();
+  });
+
+  it("returns an error for an unknown code", async () => {
+    const client = await connect();
+    const result = await emit<JoinResult>(client, "join", { code: "ZZZZ", nickname: "x" });
+    expect(result.error).toBe("Session not found");
+    client.close();
   });
 });
