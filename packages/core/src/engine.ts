@@ -92,6 +92,7 @@ export function reduceSession(
 
     case "PLAYER_INPUT":
     case "TICK":
+    case "REVEAL":
     case "SERVER_RESULT": {
       if (s.phase !== "playing" || s.cursor === null) return s;
       const cur = orderedLeaves(game.root).find((l) => l.id === s.cursor);
