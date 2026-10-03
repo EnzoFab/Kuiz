@@ -1,11 +1,13 @@
 /**
- * @kuiz/bricks — Brick contract, the shared brickRegistry, and Brick implementations
- * (question, presentational, integrations). Pure + backend-reachable; no views.
+ * @kuiz/bricks — the Brick contract registry + Brick implementations (question,
+ * presentational, integrations). Pure + backend-reachable; no views.
  * See docs/spec/brick-contract.md.
  *
- * B1 scaffold: placeholder export that also verifies cross-package wiring to @kuiz/core.
+ * Brick implementations land from B6 onward and register into `brickRegistry`.
  */
 import { CORE_VERSION } from "@kuiz/core";
 
 export const BRICKS_VERSION = "0.0.0";
 export const LINKED_CORE_VERSION = CORE_VERSION;
+
+export * from "./registry.js";
