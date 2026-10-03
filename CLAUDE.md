@@ -52,6 +52,22 @@ gh issue list --repo EnzoFab/Kuiz --state open --label build \
   applying; note any deliberately skipped.
 - New out-of-plan work → a new `build` issue on the board, don't scope-creep a step.
 
+## Code style (write for a human reader)
+
+- **Boolean names read as a question**: a verb (or auxiliary) + what is checked —
+  `isVisible`, `canPlay`, `hasAnswered`, `shouldReveal`, `isComplete`. Never a bare
+  adjective or noun (`visible`, `answered`, `done`, `connected`).
+- **Always use braces; no single-line `if`/`else`.** Even a one-statement branch gets a block
+  on its own lines:
+
+  ```ts
+  if (done) {
+    return;
+  }
+  ```
+
+  not `if (done) return;`. Same for `else`.
+
 ## UI components: keep them swappable for a design system
 
 A richer brand design system lands later (see `docs/spec/design-system.md`). Build every UI

@@ -12,7 +12,7 @@ import { Button, Input, Checkbox } from "../ui";
 export interface BrickPlayProps {
   config: any;
   state: any;
-  revealed: boolean;
+  isRevealed: boolean;
   player: string;
   onEvent: (ev: SessionEvent) => void;
 }
@@ -21,11 +21,11 @@ export interface BrickView {
   Play: (props: BrickPlayProps) => JSX.Element;
 }
 
-function QuestionPlay({ config, state, revealed, player, onEvent }: BrickPlayProps) {
+function QuestionPlay({ config, state, isRevealed, player, onEvent }: BrickPlayProps) {
   const [draft, setDraft] = useState("");
   const [picks, setPicks] = useState<string[]>([]);
   const mine = state?.answers?.[player]?.value;
-  const answered = mine !== undefined;
+  const hasAnswered = mine !== undefined;
   const answer = (input: unknown) => onEvent({ type: "PLAYER_INPUT", playerId: player, input, now: Date.now() });
 
   return (
@@ -38,7 +38,7 @@ function QuestionPlay({ config, state, revealed, player, onEvent }: BrickPlayPro
             key={opt}
             variant={mine === opt ? "primary" : "outline"}
             className="w-full justify-start text-left"
-            disabled={answered || revealed}
+            disabled={hasAnswered || isRevealed}
             onClick={() => answer(opt)}
           >
             {opt}
@@ -51,7 +51,7 @@ function QuestionPlay({ config, state, revealed, player, onEvent }: BrickPlayPro
             key={opt}
             variant={String(mine) === opt ? "primary" : "outline"}
             className="w-full"
-            disabled={answered || revealed}
+            disabled={hasAnswered || isRevealed}
             onClick={() => answer(opt === "true")}
           >
             {opt === "true" ? "True" : "False"}
@@ -63,14 +63,14 @@ function QuestionPlay({ config, state, revealed, player, onEvent }: BrickPlayPro
           {(config.options as string[]).map((opt) => (
             <label key={opt} className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
               <Checkbox
-                disabled={answered || revealed}
+                disabled={hasAnswered || isRevealed}
                 checked={picks.includes(opt)}
                 onChange={(e) => setPicks((p) => (e.target.checked ? [...p, opt] : p.filter((x) => x !== opt)))}
               />
               <span>{opt}</span>
             </label>
           ))}
-          <Button className="w-full" disabled={answered || revealed} onClick={() => answer(picks)}>
+          <Button className="w-full" disabled={hasAnswered || isRevealed} onClick={() => answer(picks)}>
             Submit
           </Button>
         </div>
@@ -82,18 +82,18 @@ function QuestionPlay({ config, state, revealed, player, onEvent }: BrickPlayPro
             className="flex-1"
             placeholder="Type your answer"
             value={draft}
-            disabled={answered || revealed}
+            disabled={hasAnswered || isRevealed}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && draft && answer(draft)}
           />
-          <Button disabled={answered || revealed || !draft} onClick={() => answer(draft)}>
+          <Button disabled={hasAnswered || isRevealed || !draft} onClick={() => answer(draft)}>
             Answer
           </Button>
         </div>
       )}
 
-      {answered && !revealed && <p className="text-muted-foreground">Answer locked in ✓</p>}
-      {revealed && (
+      {hasAnswered && !isRevealed && <p className="text-muted-foreground">Answer locked in ✓</p>}
+      {isRevealed && (
         <p className="text-good font-semibold">
           Correct answer: {Array.isArray(config.answer) ? config.answer.join(", ") : String(config.answer)}
         </p>

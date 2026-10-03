@@ -31,7 +31,7 @@ export function GameRunner({ game }: { game: Game }) {
   const index = leaves.findIndex((l) => l.id === state.cursor);
   const current = leaves[index];
   const logic = current ? brickRegistry.logic(current.brick.type) : null;
-  const complete = logic ? logic.isComplete(state.brickState) : false;
+  const isComplete = logic ? logic.isComplete(state.brickState) : false;
   const view = current ? brickViews[current.brick.type] : null;
 
   return (
@@ -51,16 +51,16 @@ export function GameRunner({ game }: { game: Game }) {
             <view.Play
               config={current.brick.config}
               state={state.brickState}
-              revealed={complete}
+              isRevealed={isComplete}
               player={PLAYER}
               onEvent={dispatch}
             />
           </Card>
           <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" disabled={complete} onClick={() => dispatch({ type: "REVEAL" })}>
+            <Button variant="outline" className="flex-1" disabled={isComplete} onClick={() => dispatch({ type: "REVEAL" })}>
               Reveal
             </Button>
-            <Button className="flex-1" disabled={!complete} onClick={() => dispatch({ type: "ADVANCE", source: "host" })}>
+            <Button className="flex-1" disabled={!isComplete} onClick={() => dispatch({ type: "ADVANCE", source: "host" })}>
               Next
             </Button>
           </div>
