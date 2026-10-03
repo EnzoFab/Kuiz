@@ -9,14 +9,18 @@ export class BrickRegistry {
   private readonly defs = new Map<string, BrickDefinition>();
 
   register(def: BrickDefinition): this {
-    if (this.defs.has(def.type)) {throw new Error(`Brick type already registered: ${def.type}`);}
+    if (this.defs.has(def.type)) {
+      throw new Error(`Brick type already registered: ${def.type}`);
+    }
     this.defs.set(def.type, def);
     return this;
   }
 
   get(type: string): BrickDefinition {
     const def = this.defs.get(type);
-    if (!def) {throw new Error(`Unknown brick type: ${type}`);}
+    if (!def) {
+      throw new Error(`Unknown brick type: ${type}`);
+    }
     return def;
   }
 

@@ -9,8 +9,11 @@ type LeafSegment = Extract<Segment, { kind: "brick" }>;
 export function orderedLeaves(root: Segment): LeafSegment[] {
   const out: LeafSegment[] = [];
   const walk = (s: Segment): void => {
-    if (s.kind === "brick") {out.push(s);}
-    else {s.children.forEach(walk);}
+    if (s.kind === "brick") {
+      out.push(s);
+    } else {
+      s.children.forEach(walk);
+    }
   };
   walk(root);
   return out;
@@ -43,12 +46,7 @@ export function initSession(game: Game, opts: { mode: "online" | "offline" }): S
  * complete) it stores the Brick's outcome and moves the cursor. See
  * docs/spec/flow-execution-model.md.
  */
-export function reduceSession(
-  game: Game,
-  s: SessionState,
-  ev: SessionEvent,
-  deps: EngineDeps,
-): SessionState {
+export function reduceSession(game: Game, s: SessionState, ev: SessionEvent, deps: EngineDeps): SessionState {
   const now = deps.now?.() ?? 0;
 
   switch (ev.type) {
@@ -61,22 +59,37 @@ export function reduceSession(
     }
 
     case "START": {
-      if (s.phase !== "lobby") {return s;}
+      if (s.phase !== "lobby") {
+        return s;
+      }
       const leaves = orderedLeaves(game.root);
       const first = leaves[0];
-      if (!first) {return { ...s, phase: "results" };}
+      if (!first) {
+        return { ...s, phase: "results" };
+      }
       const logic = deps.resolve(first.brick.type);
-      return { ...s, phase: "playing", cursor: first.id, brickState: logic.init(first.brick.config, { now }) };
+      return {
+        ...s,
+        phase: "playing",
+        cursor: first.id,
+        brickState: logic.init(first.brick.config, { now }),
+      };
     }
 
     case "ADVANCE": {
-      if (s.phase !== "playing" || s.cursor === null) {return s;}
+      if (s.phase !== "playing" || s.cursor === null) {
+        return s;
+      }
       const leaves = orderedLeaves(game.root);
       const idx = leaves.findIndex((l) => l.id === s.cursor);
       const cur = leaves[idx];
-      if (!cur) {return s;}
+      if (!cur) {
+        return s;
+      }
       const logic = deps.resolve(cur.brick.type);
-      if (!logic.isComplete(s.brickState)) {return s;} // can't advance until the Brick is done
+      if (!logic.isComplete(s.brickState)) {
+        return s;
+      } // can't advance until the Brick is done
       const out = logic.outcome(cur.brick.config, s.brickState);
       // A scoring-bearing leaf (has a LeafScoring rule and emitted facts) folds into results.
       const results =
@@ -85,18 +98,30 @@ export function reduceSession(
           : s.results;
       const scorecard = computeScorecard(game, results);
       const next = leaves[idx + 1];
-      if (!next) {return { ...s, results, scorecard, phase: "results", cursor: null, brickState: null };}
+      if (!next) {
+        return { ...s, results, scorecard, phase: "results", cursor: null, brickState: null };
+      }
       const nextLogic = deps.resolve(next.brick.type);
-      return { ...s, results, scorecard, cursor: next.id, brickState: nextLogic.init(next.brick.config, { now }) };
+      return {
+        ...s,
+        results,
+        scorecard,
+        cursor: next.id,
+        brickState: nextLogic.init(next.brick.config, { now }),
+      };
     }
 
     case "PLAYER_INPUT":
     case "TICK":
     case "REVEAL":
     case "SERVER_RESULT": {
-      if (s.phase !== "playing" || s.cursor === null) {return s;}
+      if (s.phase !== "playing" || s.cursor === null) {
+        return s;
+      }
       const cur = orderedLeaves(game.root).find((l) => l.id === s.cursor);
-      if (!cur) {return s;}
+      if (!cur) {
+        return s;
+      }
       const logic = deps.resolve(cur.brick.type);
       // The session event is passed through as the Brick event; precise mapping
       // (e.g. PLAYER_INPUT → an answer) is the Brick's / online layer's concern (B6/B11).

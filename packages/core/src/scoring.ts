@@ -51,11 +51,17 @@ export function rank(metric: Record<PlayerId, number>): SegmentResult {
 function applySpeedBonus(metric: Record<PlayerId, number>, outcome: BrickOutcome): void {
   let best = Infinity;
   for (const [pid, f] of Object.entries(outcome.perPlayer)) {
-    if ((metric[pid] ?? 0) > 0 && f.responseMs != null) {best = Math.min(best, f.responseMs);}
+    if ((metric[pid] ?? 0) > 0 && f.responseMs != null) {
+      best = Math.min(best, f.responseMs);
+    }
   }
-  if (best === Infinity) {return;}
+  if (best === Infinity) {
+    return;
+  }
   for (const [pid, f] of Object.entries(outcome.perPlayer)) {
-    if ((metric[pid] ?? 0) > 0 && f.responseMs === best) {metric[pid] += 1;}
+    if ((metric[pid] ?? 0) > 0 && f.responseMs === best) {
+      metric[pid] += 1;
+    }
   }
 }
 
@@ -70,7 +76,9 @@ export function scoreLeaf(rule: LeafScoring, outcome: BrickOutcome): SegmentResu
       metric[pid] = f.correct ? rule.basePoints : 0;
     }
   }
-  if (rule.speedBonus) {applySpeedBonus(metric, outcome);}
+  if (rule.speedBonus) {
+    applySpeedBonus(metric, outcome);
+  }
   return rank(metric);
 }
 
@@ -82,15 +90,23 @@ export const aggregations: Record<string, AggregationStrategy> = {
   sum_points: (children) => {
     const acc: Record<PlayerId, number> = {};
     for (const c of children) {
-      for (const [p, r] of Object.entries(c.perPlayer)) {acc[p] = (acc[p] ?? 0) + r.points;}
+      for (const [p, r] of Object.entries(c.perPlayer)) {
+        acc[p] = (acc[p] ?? 0) + r.points;
+      }
     }
     return acc;
   },
   count_wins: (children) => {
     const acc: Record<PlayerId, number> = {};
     for (const c of children) {
-      for (const p of Object.keys(c.perPlayer)) {acc[p] = acc[p] ?? 0;} // ensure everyone appears
-      for (const [p, r] of Object.entries(c.perPlayer)) {if (r.position === 1) {acc[p] += 1;}}
+      for (const p of Object.keys(c.perPlayer)) {
+        acc[p] = acc[p] ?? 0;
+      } // ensure everyone appears
+      for (const [p, r] of Object.entries(c.perPlayer)) {
+        if (r.position === 1) {
+          acc[p] += 1;
+        }
+      }
     }
     return acc;
   },
@@ -99,7 +115,9 @@ export const aggregations: Record<string, AggregationStrategy> = {
 /** Aggregate a group's children into a Segment Result via its scoring strategy. */
 export function scoreGroup(scoring: GroupScoring, children: SegmentResult[]): SegmentResult {
   const strategy = aggregations[scoring.aggregation];
-  if (!strategy) {throw new Error(`Unknown aggregation strategy: ${scoring.aggregation}`);}
+  if (!strategy) {
+    throw new Error(`Unknown aggregation strategy: ${scoring.aggregation}`);
+  }
   return rank(strategy(children));
 }
 
@@ -114,15 +132,21 @@ export function computeScorecard(game: Game, results: Record<string, SegmentResu
   const compute = (seg: Segment): SegmentResult | null => {
     if (seg.kind === "brick") {
       const r = results[seg.id];
-      if (r) {bySegment[seg.id] = r;}
+      if (r) {
+        bySegment[seg.id] = r;
+      }
       return r ?? null;
     }
     const childResults: SegmentResult[] = [];
     for (const child of seg.children) {
       const r = compute(child);
-      if (r) {childResults.push(r);}
+      if (r) {
+        childResults.push(r);
+      }
     }
-    if (childResults.length === 0) {return null;}
+    if (childResults.length === 0) {
+      return null;
+    }
     const scoring: GroupScoring = seg.scoring ?? { aggregation: "sum_points" };
     const res = scoreGroup(scoring, childResults);
     bySegment[seg.id] = res;

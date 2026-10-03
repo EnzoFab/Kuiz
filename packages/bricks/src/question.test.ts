@@ -4,7 +4,12 @@ import type { SessionEvent } from "@kuiz/core";
 
 describe("checkAnswer", () => {
   it("single_select: exact option match", () => {
-    const c: QuestionConfig = { prompt: "?", answerType: "single_select", options: ["Paris", "Lyon"], answer: "Paris" };
+    const c: QuestionConfig = {
+      prompt: "?",
+      answerType: "single_select",
+      options: ["Paris", "Lyon"],
+      answer: "Paris",
+    };
     expect(checkAnswer(c, "Paris")).toEqual({ correct: true, matchScore: 1 });
     expect(checkAnswer(c, "Lyon")).toEqual({ correct: false, matchScore: 0 });
   });

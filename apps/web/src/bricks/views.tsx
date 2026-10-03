@@ -26,7 +26,8 @@ function QuestionPlay({ config, state, isRevealed, player, onEvent }: BrickPlayP
   const [picks, setPicks] = useState<string[]>([]);
   const mine = state?.answers?.[player]?.value;
   const hasAnswered = mine !== undefined;
-  const answer = (input: unknown) => onEvent({ type: "PLAYER_INPUT", playerId: player, input, now: Date.now() });
+  const answer = (input: unknown) =>
+    onEvent({ type: "PLAYER_INPUT", playerId: player, input, now: Date.now() });
 
   return (
     <div className="space-y-4">
@@ -61,11 +62,16 @@ function QuestionPlay({ config, state, isRevealed, player, onEvent }: BrickPlayP
       {config.answerType === "multiple_select" && (
         <div className="space-y-2">
           {(config.options as string[]).map((opt) => (
-            <label key={opt} className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
+            <label
+              key={opt}
+              className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3"
+            >
               <Checkbox
                 disabled={hasAnswered || isRevealed}
                 checked={picks.includes(opt)}
-                onChange={(e) => setPicks((p) => (e.target.checked ? [...p, opt] : p.filter((x) => x !== opt)))}
+                onChange={(e) =>
+                  setPicks((p) => (e.target.checked ? [...p, opt] : p.filter((x) => x !== opt)))
+                }
               />
               <span>{opt}</span>
             </label>

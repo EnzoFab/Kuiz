@@ -37,7 +37,9 @@ const game: Game = parseGame({
         id: "s1",
         kind: "group",
         scoring: { aggregation: "sum_points" },
-        children: [{ id: "b1", kind: "brick", scoring: { basePoints: 10 }, brick: { type: "tap", config: {} } }],
+        children: [
+          { id: "b1", kind: "brick", scoring: { basePoints: 10 }, brick: { type: "tap", config: {} } },
+        ],
       },
       { id: "b2", kind: "brick", brick: { type: "show", config: {} } },
       { id: "b3", kind: "brick", scoring: { basePoints: 10 }, brick: { type: "tap", config: {} } },

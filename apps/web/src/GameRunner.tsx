@@ -57,10 +57,19 @@ export function GameRunner({ game }: { game: Game }) {
             />
           </Card>
           <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" disabled={isComplete} onClick={() => dispatch({ type: "REVEAL" })}>
+            <Button
+              variant="outline"
+              className="flex-1"
+              disabled={isComplete}
+              onClick={() => dispatch({ type: "REVEAL" })}
+            >
               Reveal
             </Button>
-            <Button className="flex-1" disabled={!isComplete} onClick={() => dispatch({ type: "ADVANCE", source: "host" })}>
+            <Button
+              className="flex-1"
+              disabled={!isComplete}
+              onClick={() => dispatch({ type: "ADVANCE", source: "host" })}
+            >
               Next
             </Button>
           </div>

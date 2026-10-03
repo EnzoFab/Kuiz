@@ -19,4 +19,6 @@ export * from "./presentational.js";
 
 // Register the built-in Bricks into the default shared registry.
 brickRegistry.register(questionBrick);
-for (const brick of presentationalBricks) {brickRegistry.register(brick);}
+for (const brick of presentationalBricks) {
+  brickRegistry.register(brick);
+}
