@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, HTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes } from "react";
 import { cn } from "./cn";
 
 /**
@@ -38,4 +38,21 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
       {...props}
     />
   );
+}
+
+export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      className={cn(
+        "w-full rounded-xl border border-border bg-card px-4 py-3 text-base outline-none",
+        "focus:border-primary disabled:opacity-40",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export function Checkbox({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+  return <input type="checkbox" className={cn("h-5 w-5 accent-primary", className)} {...props} />;
 }

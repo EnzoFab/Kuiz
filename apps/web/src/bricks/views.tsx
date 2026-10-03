@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import type { SessionEvent } from "@kuiz/core";
-import { Button } from "../ui/primitives";
+import { Button, Input, Checkbox } from "../ui";
 
 /**
  * Per-frontend Brick *views* (the web view map). The shared contract/logic lives in
@@ -64,9 +64,7 @@ function QuestionPlay({ config, state, revealed, player, onEvent }: BrickPlayPro
         <div className="space-y-2">
           {(config.options as string[]).map((opt) => (
             <label key={opt} className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
-              <input
-                type="checkbox"
-                className="h-5 w-5"
+              <Checkbox
                 disabled={answered || revealed}
                 checked={picks.includes(opt)}
                 onChange={(e) => setPicks((p) => (e.target.checked ? [...p, opt] : p.filter((x) => x !== opt)))}
@@ -82,8 +80,8 @@ function QuestionPlay({ config, state, revealed, player, onEvent }: BrickPlayPro
 
       {config.answerType === "free_text" && (
         <div className="flex gap-2">
-          <input
-            className="flex-1 rounded-xl border border-border bg-card px-4 py-3 text-base"
+          <Input
+            className="flex-1"
             placeholder="Type your answer"
             value={draft}
             disabled={answered || revealed}

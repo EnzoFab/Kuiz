@@ -8,7 +8,7 @@ import {
   type SessionState,
 } from "@kuiz/core";
 import { brickRegistry } from "@kuiz/bricks";
-import { Button, Card } from "./ui/primitives";
+import { Button, Card } from "./ui";
 import { brickViews } from "./bricks/views";
 
 const PLAYER = "You";

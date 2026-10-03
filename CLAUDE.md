@@ -49,6 +49,25 @@ gh issue list --repo EnzoFab/Kuiz --state open --label build \
 - Meet the issue's **done-check** before calling it done; follow the matching `docs/spec/*`.
 - New out-of-plan work → a new `build` issue on the board, don't scope-creep a step.
 
+## UI components: keep them swappable for a design system
+
+A richer brand design system lands later (see `docs/spec/design-system.md`). Build every UI
+component so that swap is a localized change, never a rewrite:
+
+- **One swap seam.** All shared UI primitives live in `apps/web/src/ui/` and are imported from
+  the `./ui` barrel — never deep-imported. Replacing the design system = replacing that folder;
+  call sites don't change.
+- **Tokens only.** Components use design tokens (CSS variables / token classes like
+  `bg-primary`, `text-muted-foreground`, `border-border`). Never hardcode colors, radii, fonts,
+  or bespoke spacing scales. A rebrand is a token change in `apps/web/src/index.css`.
+- **Route everything through primitives.** Feature components and Brick views use `ui`
+  primitives (`Button`, `Card`, `Input`, `Checkbox`, …), not raw styled `<button>`/`<input>`.
+  New recurring element → add a primitive to `ui/`, don't inline it.
+- **Minimal, generic APIs.** Primitive props stay generic (`variant`, `size`, standard HTML
+  attrs) so a shadcn/other kit can back them without touching callers.
+- **Presentational only.** No engine/business logic in components — logic stays in
+  `@kuiz/core` / `@kuiz/bricks`; components receive data + callbacks.
+
 Board plumbing (for moving a card): project `PVT_kwHOAbYXFc4BkyZj`, Status field
 `PVTSSF_lAHOAbYXFc4BkyZjzhjhtY0` (options: Todo `f75ad846`, In Progress `47fc9ee4`,
 Done `98236657`). Find an item id with
