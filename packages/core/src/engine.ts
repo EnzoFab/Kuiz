@@ -1,6 +1,7 @@
 import type { Game, Segment } from "./schema.js";
 import type { BrickResolver } from "./brick.js";
 import type { SessionState, SessionEvent } from "./session.js";
+import { computeScorecard, scoreLeaf, type BrickOutcome } from "./scoring.js";
 
 type LeafSegment = Extract<Segment, { kind: "brick" }>;
 
@@ -77,11 +78,16 @@ export function reduceSession(
       const logic = deps.resolve(cur.brick.type);
       if (!logic.isComplete(s.brickState)) return s; // can't advance until the Brick is done
       const out = logic.outcome(cur.brick.config, s.brickState);
-      const results = out === null ? s.results : { ...s.results, [cur.id]: out };
+      // A scoring-bearing leaf (has a LeafScoring rule and emitted facts) folds into results.
+      const results =
+        out !== null && cur.scoring
+          ? { ...s.results, [cur.id]: scoreLeaf(cur.scoring, out as BrickOutcome) }
+          : s.results;
+      const scorecard = computeScorecard(game, results);
       const next = leaves[idx + 1];
-      if (!next) return { ...s, results, phase: "results", cursor: null, brickState: null };
+      if (!next) return { ...s, results, scorecard, phase: "results", cursor: null, brickState: null };
       const nextLogic = deps.resolve(next.brick.type);
-      return { ...s, results, cursor: next.id, brickState: nextLogic.init(next.brick.config, { now }) };
+      return { ...s, results, scorecard, cursor: next.id, brickState: nextLogic.init(next.brick.config, { now }) };
     }
 
     case "PLAYER_INPUT":
