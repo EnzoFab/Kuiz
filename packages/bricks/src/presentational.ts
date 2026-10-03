@@ -31,8 +31,8 @@ function makePresentationalBrick(type: string, configSchema: z.ZodTypeAny): Bric
         startedAt: ctx.now,
       }),
       reduce: (config: WithDuration, state: PresentationalState, ev: SessionEvent): PresentationalState => {
-        if (state.phase === "done") return state;
-        if (ev.type === "REVEAL") return { ...state, phase: "done" }; // host/online proceed
+        if (state.phase === "done") {return state;}
+        if (ev.type === "REVEAL") {return { ...state, phase: "done" };} // host/online proceed
         if (ev.type === "TICK" && config.durationSec != null && ev.now - state.startedAt >= config.durationSec * 1000) {
           return { ...state, phase: "done" };
         }

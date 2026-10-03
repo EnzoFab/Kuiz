@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseGame, safeParseGame, type Game } from "./schema.js";
+import { parseGame, safeParseGame } from "./schema.js";
 
 // A valid v1 Game: a Blind Test group (presentational + question) and a Simple Quiz group.
 // Points live on the leaf Segments' scoring (per docs/spec/scoring-model.md), not in brick config.
@@ -59,7 +59,7 @@ describe("game-definition schema", () => {
     const simple = game.root.kind === "group" ? game.root.children[1] : undefined;
     const leaf = simple && simple.kind === "group" ? simple.children[0] : undefined;
     expect(leaf?.kind).toBe("brick");
-    if (leaf?.kind === "brick") expect(leaf.scoring?.grading).toBe("binary");
+    if (leaf?.kind === "brick") {expect(leaf.scoring?.grading).toBe("binary");}
   });
 
   it("round-trips through JSON", () => {

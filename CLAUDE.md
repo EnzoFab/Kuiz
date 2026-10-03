@@ -47,6 +47,8 @@ gh issue list --repo EnzoFab/Kuiz --state open --label build \
 - **Open a PR** referencing the issue (`Closes #<n>`); on merge, the issue closes — move its
   board card to **Done**.
 - Meet the issue's **done-check** before calling it done; follow the matching `docs/spec/*`.
+- **`pnpm lint` (ESLint: curly + boolean naming) and `pnpm test` must pass** before a PR merges.
+  `pnpm lint:fix` auto-fixes most style issues.
 - **Run `ponytail-review` on each build PR before merge** — an over-engineering check (reinvented
   stdlib, needless deps, speculative abstractions, dead flexibility). Apply the findings worth
   applying; note any deliberately skipped.
