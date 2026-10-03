@@ -21,14 +21,12 @@ export interface BrickView {
   Play: (props: BrickPlayProps) => JSX.Element;
 }
 
-const now = () => Date.now();
-
 function QuestionPlay({ config, state, revealed, player, onEvent }: BrickPlayProps) {
   const [draft, setDraft] = useState("");
   const [picks, setPicks] = useState<string[]>([]);
   const mine = state?.answers?.[player]?.value;
   const answered = mine !== undefined;
-  const answer = (input: unknown) => onEvent({ type: "PLAYER_INPUT", playerId: player, input, now: now() });
+  const answer = (input: unknown) => onEvent({ type: "PLAYER_INPUT", playerId: player, input, now: Date.now() });
 
   return (
     <div className="space-y-4">

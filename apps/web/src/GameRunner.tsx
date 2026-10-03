@@ -34,8 +34,6 @@ export function GameRunner({ game }: { game: Game }) {
   const complete = logic ? logic.isComplete(state.brickState) : false;
   const view = current ? brickViews[current.brick.type] : null;
 
-  const scorecard = state.scorecard;
-
   return (
     <div className="mx-auto max-w-xl space-y-5 p-4">
       <header className="flex items-center justify-between">
@@ -76,11 +74,11 @@ export function GameRunner({ game }: { game: Game }) {
         </Card>
       )}
 
-      {scorecard && Object.keys(scorecard.perPlayer).length > 0 && (
+      {state.scorecard && Object.keys(state.scorecard.perPlayer).length > 0 && (
         <Card>
           <h3 className="mb-3 font-semibold">Scorecard</h3>
           <ul className="space-y-2">
-            {Object.entries(scorecard.perPlayer)
+            {Object.entries(state.scorecard.perPlayer)
               .sort((a, b) => a[1].position - b[1].position)
               .map(([player, r]) => (
                 <li key={player} className="flex items-center justify-between">

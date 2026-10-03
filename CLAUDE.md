@@ -47,6 +47,9 @@ gh issue list --repo EnzoFab/Kuiz --state open --label build \
 - **Open a PR** referencing the issue (`Closes #<n>`); on merge, the issue closes — move its
   board card to **Done**.
 - Meet the issue's **done-check** before calling it done; follow the matching `docs/spec/*`.
+- **Run `ponytail-review` on each build PR before merge** — an over-engineering check (reinvented
+  stdlib, needless deps, speculative abstractions, dead flexibility). Apply the findings worth
+  applying; note any deliberately skipped.
 - New out-of-plan work → a new `build` issue on the board, don't scope-creep a step.
 
 ## UI components: keep them swappable for a design system

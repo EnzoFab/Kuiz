@@ -6,7 +6,7 @@ import { cn } from "./cn";
  * Hand-rolled for B8; richer shadcn components can be added via its CLI later.
  */
 
-type ButtonVariant = "primary" | "outline" | "ghost";
+type ButtonVariant = "primary" | "outline";
 
 export function Button({
   className,
@@ -16,7 +16,6 @@ export function Button({
   const variants: Record<ButtonVariant, string> = {
     primary: "bg-primary text-primary-foreground hover:opacity-90",
     outline: "border border-border bg-card text-foreground hover:bg-muted",
-    ghost: "text-foreground hover:bg-muted",
   };
   return (
     <button
