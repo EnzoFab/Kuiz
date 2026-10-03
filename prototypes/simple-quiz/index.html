@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kuiz — Simple Quiz Brick (PROTOTYPE)</title>
+<style>
+  :root{
+    --bg:#0f1221; --panel:#1a1f36; --ink:#e8ebf7; --muted:#9aa3c7; --line:#2b3157;
+    --accent:#6c8cff; --good:#3ecf8e; --bad:#ff6b8a; --warn:#ffc857;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){ --bg:#f4f6ff; --panel:#fff; --ink:#1a1f36; --muted:#5b628a; --line:#e2e6f5; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{max-width:1040px;margin:0 auto;padding:16px}
+  .banner{background:var(--warn);color:#201a00;padding:8px 14px;border-radius:8px;font-weight:600;margin-bottom:14px}
+  h1{font-size:20px;margin:.2em 0}
+  .muted{color:var(--muted)}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:800px){.cols{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .tab{padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);cursor:pointer;font-size:13px}
+  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  button{font:inherit}
+  .btn{padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);cursor:pointer}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
+  input[type=text]{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+  pre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;overflow:auto;font-size:12.5px;max-height:360px}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line)}
+  .good{color:var(--good)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  td,th{border:1px solid var(--line);padding:5px 8px;text-align:left}
+  .q{font-weight:600;font-size:16px}
+  .log{font-size:12.5px;color:var(--muted);white-space:pre-wrap}
+  h3{margin:.2em 0 .4em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner">⚠️ PROTOTYPE — throwaway code validating the Brick contract (#13) + flow engine (#5). Not production.</div>
+  <h1>Kuiz · Simple Quiz Brick</h1>
+  <p class="muted">A Simple Quiz Segment = a group of <b>question</b> Bricks. Each Brick is a pure reducer
+    (<code>init</code>/<code>reduce</code>/<code>isComplete</code>/<code>outcome</code>). The engine walks the
+    group, folds each Brick's outcome into a <b>Segment Result</b> (<code>{position, points}</code> per player).</p>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="cols">
+    <div>
+      <div class="panel" id="stage"></div>
+      <div class="panel">
+        <h3>Event log <span class="muted">(what we dispatched)</span></h3>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+    <div>
+      <div class="panel">
+        <h3>Live session state <span class="muted">(serializable — the whole truth)</span></h3>
+        <pre id="state"></pre>
+      </div>
+      <div class="panel">
+        <h3>Scorecard / Segment Result</h3>
+        <div id="score"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   BRICK CONTRACT (pure) — question Brick
+   NOTE (prototype finding): reduce() and outcome() need the Brick's
+   config (it holds the answer / checker), so the contract's signatures
+   take `config`. See docs correction in the issue.
+   ============================================================ */
+const norm = s => String(s ?? "").trim().toLowerCase().replace(/\s+/g," ");
+function lev(a,b){const m=a.length,n=b.length;const d=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);
+  for(let j=0;j<=n;j++)d[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return d[m][n];}
+
+function checkAnswer(config, value){
+  if(config.answerType==="single_select"){const ok=value===config.answer;return{correct:ok,matchScore:ok?1:0};}
+  const strat=(config.answerCheck&&config.answerCheck.strategy)||"exact";
+  if(strat==="exact"){const ok=norm(value)===norm(config.answer);return{correct:ok,matchScore:ok?1:0};}
+  // fuzzy (spelling-tolerant)
+  const a=norm(value),b=norm(config.answer);
+  const score=1-lev(a,b)/Math.max(b.length,1);
+  const th=(config.answerCheck&&config.answerCheck.threshold)??0.8;
+  return{correct:score>=th,matchScore:Math.max(0,Math.round(score*100)/100)};
+}
+
+const questionBrick = {
+  init(config, ctx){ return { phase:"awaiting", answers:{}, startedAt:ctx.now }; },
+  reduce(config, state, event){
+    switch(event.type){
+      case "ANSWER":
+        if(state.phase!=="awaiting") return state;
+        return {...state, answers:{...state.answers,[event.player]:{value:event.value, atMs:event.now-state.startedAt}}};
+      case "TIMEUP":
+      case "REVEAL":
+        return state.phase==="awaiting" ? {...state, phase:"revealed"} : state;
+      default: return state;
+    }
+  },
+  // FINDING: "revealed" IS the terminal state — the Brick is complete once its answer
+  // is revealed (by all-answered/timeout online, or the GM offline). No separate "complete".
+  isComplete(state){ return state.phase==="revealed"; },
+  outcome(config, state){
+    const perPlayer={};
+    for(const [pid,a] of Object.entries(state.answers)){
+      const {correct,matchScore}=checkAnswer(config,a.value);
+      perPlayer[pid]={answer:a.value, correct, matchScore, responseMs:a.atMs};
+    }
+    return { perPlayer };
+  }
+};
+
+/* ============================================================
+   SEGMENT SCORING (sum_points) — folds Brick outcomes → Segment Result
+   (scoring detail is ticket #14; here: full points if correct)
+   ============================================================ */
+function foldOutcome(acc, brickConfig, outcome){
+  const next={...acc};
+  for(const [pid,r] of Object.entries(outcome.perPlayer)){
+    next[pid]=(next[pid]||0)+(r.correct?brickConfig.points:0);
+  }
+  return next;
+}
+function rank(points, players){
+  const rows=players.map(p=>({player:p, points:points[p]||0})).sort((a,b)=>b.points-a.points);
+  let pos=0,prev=null,seen=0;
+  for(const r of rows){ seen++; if(r.points!==prev){pos=seen;prev=r.points;} r.position=pos; }
+  const perPlayer={}; rows.forEach(r=>perPlayer[r.player]={position:r.position,points:r.points});
+  return perPlayer;
+}
+
+/* ============================================================
+   MINI SESSION ENGINE — reduceSession over a Simple Quiz group
+   (mirrors #5: cursor + brickState + results + scorecard)
+   ============================================================ */
+const GAME = {
+  title:"Demo Simple Quiz",
+  players:["A","B","C"],
+  segment:{ id:"seg_quiz", aggregation:"sum_points", children:[
+    { id:"q1", type:"question", config:{ answerType:"single_select", prompt:"Capital of France?",
+        options:["Paris","Lyon","Nice"], answer:"Paris", points:10, timeLimitSec:20 } },
+    { id:"q2", type:"question", config:{ answerType:"free_text", prompt:"Who painted the Mona Lisa?",
+        answer:"Leonardo da Vinci", answerCheck:{strategy:"fuzzy",threshold:0.8}, points:10 } }
+  ]}
+};
+let NOW=1000;
+function freshSession(){
+  const first=GAME.segment.children[0];
+  return {
+    phase:"playing", cursor:0,
+    brickState: questionBrick.init(first.config,{now:NOW}),
+    points:{}, segmentResult:null
+  };
+}
+function curBrick(s){ return GAME.segment.children[s.cursor]; }
+
+function reduceSession(s, ev){
+  if(s.phase!=="playing") return s;
+  const brick=curBrick(s);
+  // advance when current brick complete
+  if(ev.type==="ADVANCE"){
+    if(!questionBrick.isComplete(s.brickState)) return s; // guard
+    const out=questionBrick.outcome(brick.config, s.brickState);
+    const points=foldOutcome(s.points, brick.config, out);
+    const nextIdx=s.cursor+1;
+    if(nextIdx>=GAME.segment.children.length){
+      return {...s, points, phase:"results", segmentResult:rank(points,GAME.players)};
+    }
+    return {...s, points, cursor:nextIdx, brickState:questionBrick.init(GAME.segment.children[nextIdx].config,{now:NOW})};
+  }
+  // otherwise delegate to brick reducer
+  return {...s, brickState: questionBrick.reduce(brick.config, s.brickState, ev)};
+}
+
+/* ============================================================
+   UI / driver
+   ============================================================ */
+let S=freshSession(), LOG=[];
+const el=id=>document.getElementById(id);
+function dispatch(ev){ ev={...ev, now:NOW}; S=reduceSession(S,ev); LOG.unshift(JSON.stringify(ev)); NOW+=1200; render(); }
+
+const WALKTHROUGHS={
+  "Free play":null,
+  "All correct":[
+    {type:"ANSWER",player:"A",value:"Paris"},{type:"ANSWER",player:"B",value:"Paris"},{type:"ANSWER",player:"C",value:"Paris"},
+    {type:"REVEAL"},{type:"ADVANCE"},
+    {type:"ANSWER",player:"A",value:"Leonardo da Vinci"},{type:"ANSWER",player:"B",value:"Leonardo da Vinci"},{type:"ANSWER",player:"C",value:"Leonardo da Vinci"},
+    {type:"REVEAL"},{type:"ADVANCE"}
+  ],
+  "Fuzzy spelling":[
+    {type:"ANSWER",player:"A",value:"Paris"},{type:"ANSWER",player:"B",value:"Lyon"},
+    {type:"REVEAL"},{type:"ADVANCE"},
+    {type:"ANSWER",player:"A",value:"leonardo da vinci"},      // exact-ish
+    {type:"ANSWER",player:"B",value:"Leonrado da Vinci"},      // misspelled → fuzzy still accepts
+    {type:"ANSWER",player:"C",value:"Picasso"},                // wrong
+    {type:"REVEAL"},{type:"ADVANCE"}
+  ],
+  "Timeout (nobody answers Q1)":[
+    {type:"TIMEUP"},{type:"ADVANCE"},
+    {type:"ANSWER",player:"A",value:"Leonardo da Vinci"},{type:"REVEAL"},{type:"ADVANCE"}
+  ],
+  "Tie":[
+    {type:"ANSWER",player:"A",value:"Paris"},{type:"ANSWER",player:"B",value:"Paris"},{type:"ANSWER",player:"C",value:"Nice"},
+    {type:"REVEAL"},{type:"ADVANCE"},
+    {type:"ANSWER",player:"A",value:"Picasso"},{type:"ANSWER",player:"B",value:"Picasso"},{type:"ANSWER",player:"C",value:"Leonardo da Vinci"},
+    {type:"REVEAL"},{type:"ADVANCE"}
+  ]
+};
+let activeTab="Free play", script=[], scriptPos=0;
+
+function selectTab(name){
+  activeTab=name; S=freshSession(); LOG=[]; NOW=1000;
+  script=WALKTHROUGHS[name]?[...WALKTHROUGHS[name]]:[]; scriptPos=0; render();
+}
+function renderTabs(){
+  el("tabs").innerHTML="";
+  Object.keys(WALKTHROUGHS).forEach(name=>{
+    const b=document.createElement("button");
+    b.className="tab"+(name===activeTab?" active":""); b.textContent=name;
+    b.onclick=()=>selectTab(name); el("tabs").appendChild(b);
+  });
+}
+
+function stageHTML(){
+  if(S.phase==="results"){
+    return `<h3>Results</h3><p class="good">Segment complete — final Segment Result on the right.</p>
+      <button class="btn primary" onclick="selectTab(activeTab)">↻ Restart</button>`;
+  }
+  const brick=curBrick(S), c=brick.config, st=S.brickState;
+  let answerUI="";
+  if(activeTab==="Free play"){
+    if(c.answerType==="single_select"){
+      answerUI=GAME.players.map(p=>`<div class="row"><b style="width:18px">${p}</b>`+
+        c.options.map(o=>`<button class="btn" ${st.phase!=="awaiting"?"disabled":""} onclick='dispatch({type:"ANSWER",player:"${p}",value:${JSON.stringify(o)}})'>${o}</button>`).join("")+`</div>`).join("");
+    } else {
+      answerUI=GAME.players.map(p=>`<div class="row"><b style="width:18px">${p}</b>
+        <input type="text" id="in_${p}" placeholder="type answer" ${st.phase!=="awaiting"?"disabled":""}/>
+        <button class="btn" ${st.phase!=="awaiting"?"disabled":""} onclick='dispatch({type:"ANSWER",player:"${p}",value:document.getElementById("in_${p}").value})'>Answer</button></div>`).join("");
+    }
+    const controls=`<div class="row" style="margin-top:10px">
+      <button class="btn" ${st.phase!=="awaiting"?"disabled":""} onclick='dispatch({type:"TIMEUP"})'>⏱ Time up</button>
+      <button class="btn" ${st.phase!=="awaiting"?"disabled":""} onclick='dispatch({type:"REVEAL"})'>👁 Reveal (GM)</button>
+      <button class="btn primary" ${st.phase!=="revealed"?"disabled":""} onclick='dispatch({type:"ADVANCE"})'>➡ Advance</button>
+    </div>`;
+    return `<h3>Question ${S.cursor+1}/${GAME.segment.children.length} <span class="pill">${c.answerType}</span>
+      <span class="pill ${st.phase==="awaiting"?"warn":"good"}">${st.phase}</span></h3>
+      <p class="q">${c.prompt}</p>${answerUI}${controls}
+      ${st.phase!=="awaiting"?`<p class="muted">Correct answer: <b class="good">${c.answer}</b></p>`:""}`;
+  }
+  // walkthrough mode
+  const done=scriptPos>=script.length;
+  return `<h3>Walkthrough: ${activeTab}</h3>
+    <p class="q">${S.phase==="playing"?`Q${S.cursor+1}: ${curBrick(S).config.prompt}`:"—"} <span class="pill">${S.phase==="playing"?S.brickState.phase:S.phase}</span></p>
+    <p class="muted">Step ${scriptPos}/${script.length}. Next: <code>${done?"(end)":JSON.stringify(script[scriptPos])}</code></p>
+    <div class="row">
+      <button class="btn primary" ${done?"disabled":""} onclick="stepScript()">▶ Step</button>
+      <button class="btn" ${done?"disabled":""} onclick="runScript()">⏩ Run all</button>
+      <button class="btn" onclick="selectTab(activeTab)">↻ Restart</button>
+    </div>`;
+}
+function stepScript(){ if(scriptPos<script.length){ dispatch(script[scriptPos]); scriptPos++; } }
+function runScript(){ while(scriptPos<script.length){ dispatch(script[scriptPos]); scriptPos++; } }
+
+function scoreHTML(){
+  const rows=GAME.players.map(p=>{
+    const live=S.points[p]||0;
+    const res=S.segmentResult&&S.segmentResult[p];
+    return `<tr><td><b>${p}</b></td><td>${live}</td><td>${res?("#"+res.position):"—"}</td></tr>`;
+  }).join("");
+  return `<table><tr><th>Player</th><th>Points</th><th>Position</th></tr>${rows}</table>
+    ${S.segmentResult?`<p class="muted" style="margin-top:8px">SegmentResult = what this Segment returns to its parent group.</p>`:""}`;
+}
+
+function render(){
+  renderTabs();
+  el("stage").innerHTML=stageHTML();
+  el("state").textContent=JSON.stringify({phase:S.phase,cursor:S.cursor,brickState:S.brickState,points:S.points,segmentResult:S.segmentResult},null,2);
+  el("score").innerHTML=scoreHTML();
+  el("log").textContent=LOG.slice(0,12).join("\n")||"(no events yet)";
+}
+selectTab("Free play");
+</script>
+</body>
+</html>
