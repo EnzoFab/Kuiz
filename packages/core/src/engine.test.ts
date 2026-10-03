@@ -1,15 +1,16 @@
 import { describe, it, expect } from "vitest";
 import { parseGame, type Game } from "./schema.js";
 import type { BrickLogic, BrickResolver } from "./brick.js";
+import type { BrickOutcome } from "./scoring.js";
 import { initSession, orderedLeaves, reduceSession } from "./engine.js";
 import type { SessionState, SessionEvent } from "./session.js";
 
-// A stub interactive Brick: completes after one PLAYER_INPUT; emits a fixed outcome.
-const tapBrick: BrickLogic<unknown, { done: boolean }, SessionEvent, { ok: true }> = {
+// A stub interactive Brick: completes after one PLAYER_INPUT; emits facts for player A.
+const tapBrick: BrickLogic<unknown, { done: boolean }, SessionEvent, BrickOutcome> = {
   init: () => ({ done: false }),
   reduce: (_c, state, ev) => (ev.type === "PLAYER_INPUT" ? { done: true } : state),
   isComplete: (state) => state.done,
-  outcome: () => ({ ok: true }),
+  outcome: () => ({ perPlayer: { A: { correct: true } } }),
 };
 
 // A stub presentational Brick: complete immediately, no outcome.
@@ -30,10 +31,16 @@ const game: Game = parseGame({
   root: {
     id: "root",
     kind: "group",
+    scoring: { aggregation: "sum_points" },
     children: [
-      { id: "s1", kind: "group", children: [{ id: "b1", kind: "brick", brick: { type: "tap", config: {} } }] },
+      {
+        id: "s1",
+        kind: "group",
+        scoring: { aggregation: "sum_points" },
+        children: [{ id: "b1", kind: "brick", scoring: { basePoints: 10 }, brick: { type: "tap", config: {} } }],
+      },
       { id: "b2", kind: "brick", brick: { type: "show", config: {} } },
-      { id: "b3", kind: "brick", brick: { type: "tap", config: {} } },
+      { id: "b3", kind: "brick", scoring: { basePoints: 10 }, brick: { type: "tap", config: {} } },
     ],
   },
 });
@@ -45,7 +52,7 @@ describe("flow engine", () => {
     expect(orderedLeaves(game.root).map((l) => l.id)).toEqual(["b1", "b2", "b3"]);
   });
 
-  it("walks the tree to results, collecting outcomes", () => {
+  it("walks the tree, scoring leaves into a live Scorecard", () => {
     let s = initSession(game, { mode: "online" });
     expect(s.phase).toBe("lobby");
 
@@ -55,26 +62,28 @@ describe("flow engine", () => {
 
     s = step(s, { type: "PLAYER_INPUT", playerId: "A", input: {} });
     s = step(s, { type: "ADVANCE", source: "auto" });
-    expect(s.cursor).toBe("b2"); // presentational
-    expect(s.results.b1).toEqual({ ok: true });
+    expect(s.cursor).toBe("b2");
+    expect(s.results.b1.perPlayer.A).toEqual({ position: 1, points: 10 });
+    expect(s.scorecard?.perPlayer.A.points).toBe(10);
 
-    s = step(s, { type: "ADVANCE", source: "host" }); // show brick complete immediately, no outcome
+    s = step(s, { type: "ADVANCE", source: "host" }); // presentational: complete, no outcome
     expect(s.cursor).toBe("b3");
     expect(s.results.b2).toBeUndefined();
+    expect(s.scorecard?.perPlayer.A.points).toBe(10);
 
     s = step(s, { type: "PLAYER_INPUT", playerId: "A", input: {} });
     s = step(s, { type: "ADVANCE", source: "auto" });
     expect(s.phase).toBe("results");
     expect(s.cursor).toBeNull();
-    expect(s.results.b3).toEqual({ ok: true });
+    expect(s.scorecard?.perPlayer.A.points).toBe(20);
   });
 
   it("does not advance until the current Brick is complete", () => {
     let s = initSession(game, { mode: "online" });
     s = step(s, { type: "START" });
     const before = s;
-    s = step(s, { type: "ADVANCE", source: "auto" }); // b1 not complete yet
-    expect(s).toBe(before); // unchanged
+    s = step(s, { type: "ADVANCE", source: "auto" });
+    expect(s).toBe(before);
     expect(s.cursor).toBe("b1");
   });
 
@@ -90,6 +99,7 @@ describe("flow engine", () => {
     let s = initSession(game, { mode: "online" });
     s = step(s, { type: "START" });
     s = step(s, { type: "PLAYER_INPUT", playerId: "A", input: {} });
+    s = step(s, { type: "ADVANCE", source: "auto" });
     expect(JSON.parse(JSON.stringify(s))).toEqual(s);
   });
 });

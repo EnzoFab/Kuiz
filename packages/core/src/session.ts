@@ -1,4 +1,5 @@
 import type { SegmentId } from "./schema.js";
+import type { SegmentResult, Scorecard } from "./scoring.js";
 
 /** Session lifecycle phase. */
 export type Phase = "lobby" | "playing" | "results";
@@ -25,10 +26,10 @@ export interface SessionState {
   cursor: SegmentId | null;
   /** The current Brick's reducer state. */
   brickState: unknown;
-  /** Completed leaf outcomes, keyed by Segment id. Scoring fold → B4. */
-  results: Record<SegmentId, unknown>;
-  /** The aggregated Scorecard — computed in B4. */
-  scorecard: unknown | null;
+  /** Completed leaf Segment Results, keyed by Segment id. */
+  results: Record<SegmentId, SegmentResult>;
+  /** The live aggregated Scorecard (folded up the tree on each completion). */
+  scorecard: Scorecard | null;
 }
 
 export type SessionEvent =
