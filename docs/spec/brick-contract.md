@@ -39,11 +39,19 @@ type BrickCapabilities = {
 
 // Pure, platform-agnostic. State/Event/Outcome are plain JSON.
 type BrickLogic<Config, State, Event, Outcome> = {
-  init(config: Config, ctx: BrickContext): State   // starting state when the Brick begins
-  reduce(state: State, event: Event): State        // (input | host action | tick) → new state; pure
-  isComplete(state: State): boolean                // may the Segment advance?
-  outcome(state: State): Outcome | null            // per-player raw facts; null for presentational
+  init(config: Config, ctx: BrickContext): State             // starting state when the Brick begins
+  reduce(config: Config, state: State, event: Event): State  // (input | host action | tick) → new state; pure
+  isComplete(state: State): boolean                          // true at the Brick's terminal state
+  outcome(config: Config, state: State): Outcome | null      // per-player raw facts; null for presentational
 }
+```
+
+> **Prototype findings (#10), folded in:**
+> 1. `reduce` and `outcome` **take `config`** — the config holds the answer and the answer-checker, so the engine passes the current Brick's config into every logic call (not just `init`).
+> 2. `isComplete` is the Brick's **terminal state**; there is no separate "complete" step after "revealed". A question is complete **once its answer is revealed** (triggered by all-answered/timeout online, or the GM offline); `ADVANCE` then moves the cursor.
+
+```ts
+// (BrickServerHandler / BrickDefinition / BrickView unchanged below)
 
 // Optional: effects the pure reducer can't do; result re-enters reduce() as an event.
 type BrickServerHandler<Config, Event> = {

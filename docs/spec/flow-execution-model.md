@@ -52,10 +52,14 @@ from the root to the current leaf Brick.
 - On `START`: phase → `playing`; descend from the root to the first leaf Brick (first child,
   recursing into groups); `brickState = brick.logic.init(config, ctx)`.
 - Brick-level events (`PLAYER_INPUT`, `TICK`, `SERVER_RESULT`) are routed to the current
-  Brick: `brickState = brick.logic.reduce(brickState, brickEvent)`.
+  Brick: `brickState = brick.logic.reduce(config, brickState, brickEvent)` (the engine passes
+  the current Brick's `config` — prototype finding #10).
 - After each brick reduce, if `brick.logic.isComplete(brickState)`: read
-  `brick.logic.outcome(brickState)`, fold it into `results` for the enclosing Segment and up
-  into the `scorecard` (see Scoring), then wait for an `ADVANCE`.
+  `brick.logic.outcome(config, brickState)`, fold it into `results` for the enclosing Segment
+  and up into the `scorecard` (see Scoring), then wait for an `ADVANCE`. A Brick reaches
+  `isComplete` at its terminal state — e.g. a question is complete **once revealed** (by
+  all-answered/timeout online, or the GM offline); `ADVANCE` only moves the cursor when the
+  current Brick `isComplete` (prototype finding #10).
 - On `ADVANCE`: move the cursor to the **next leaf** — next sibling; if none, pop to the
   parent group's next sibling, recursing. When a group completes, its Segment Result is the
   aggregate of its children (ticket #14). When the cursor runs off the root: phase →
