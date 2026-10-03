@@ -23,7 +23,10 @@ const example = {
             id: "brk_q1",
             kind: "brick",
             scoring: { basePoints: 10, grading: "scaled" },
-            brick: { type: "question", config: { answerType: "free_text", prompt: "Name the song", answer: "…" } },
+            brick: {
+              type: "question",
+              config: { answerType: "free_text", prompt: "Name the song", answer: "…" },
+            },
           },
         ],
       },
@@ -38,7 +41,12 @@ const example = {
             scoring: { basePoints: 5 },
             brick: {
               type: "question",
-              config: { answerType: "single_select", prompt: "Capital of France?", options: ["Paris", "Lyon"], answer: "Paris" },
+              config: {
+                answerType: "single_select",
+                prompt: "Capital of France?",
+                options: ["Paris", "Lyon"],
+                answer: "Paris",
+              },
             },
           },
         ],
@@ -59,7 +67,9 @@ describe("game-definition schema", () => {
     const simple = game.root.kind === "group" ? game.root.children[1] : undefined;
     const leaf = simple && simple.kind === "group" ? simple.children[0] : undefined;
     expect(leaf?.kind).toBe("brick");
-    if (leaf?.kind === "brick") {expect(leaf.scoring?.grading).toBe("binary");}
+    if (leaf?.kind === "brick") {
+      expect(leaf.scoring?.grading).toBe("binary");
+    }
   });
 
   it("round-trips through JSON", () => {

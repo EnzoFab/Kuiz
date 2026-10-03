@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  displayImageBrick,
-  playAudioBrick,
-  DisplayImageConfigSchema,
-} from "./presentational.js";
+import { displayImageBrick, playAudioBrick, DisplayImageConfigSchema } from "./presentational.js";
 import type { SessionEvent } from "@kuiz/core";
 
 describe("presentational bricks", () => {

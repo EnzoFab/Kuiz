@@ -21,7 +21,12 @@ const demoGame: Game = parseGame({
         scoring: { basePoints: 10 },
         brick: {
           type: "question",
-          config: { prompt: "Capital of France?", answerType: "single_select", options: ["Paris", "Lyon", "Nice"], answer: "Paris" },
+          config: {
+            prompt: "Capital of France?",
+            answerType: "single_select",
+            options: ["Paris", "Lyon", "Nice"],
+            answer: "Paris",
+          },
         },
       },
       {
@@ -42,7 +47,10 @@ const demoGame: Game = parseGame({
         id: "q3",
         kind: "brick",
         scoring: { basePoints: 5 },
-        brick: { type: "question", config: { prompt: "The Earth is flat.", answerType: "true_false", answer: false } },
+        brick: {
+          type: "question",
+          config: { prompt: "The Earth is flat.", answerType: "true_false", answer: false },
+        },
       },
     ],
   },

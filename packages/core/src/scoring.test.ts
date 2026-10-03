@@ -51,7 +51,9 @@ describe("scoreLeaf", () => {
 });
 
 describe("scoreGroup", () => {
-  const seg1: SegmentResult = { perPlayer: { A: { position: 1, points: 10 }, B: { position: 2, points: 6 } } };
+  const seg1: SegmentResult = {
+    perPlayer: { A: { position: 1, points: 10 }, B: { position: 2, points: 6 } },
+  };
   const seg2: SegmentResult = { perPlayer: { A: { position: 2, points: 4 }, B: { position: 1, points: 8 } } };
 
   it("sum_points adds points across children", () => {
@@ -94,7 +96,9 @@ describe("computeScorecard", () => {
 
   it("folds leaf results up the tree (partial play is fine)", () => {
     // Only q1 answered so far: A correct, B wrong.
-    const partial = { q1: scoreLeaf({ basePoints: 10 }, { perPlayer: { A: { correct: true }, B: { correct: false } } }) };
+    const partial = {
+      q1: scoreLeaf({ basePoints: 10 }, { perPlayer: { A: { correct: true }, B: { correct: false } } }),
+    };
     const sc1 = computeScorecard(game, partial);
     expect(sc1.perPlayer.A).toEqual({ position: 1, points: 10 });
     expect(sc1.perPlayer.B).toEqual({ position: 2, points: 0 });

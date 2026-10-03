@@ -26,13 +26,19 @@ interface QuestionState {
   startedAt: number;
 }
 
-const norm = (s: unknown): string => String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+const norm = (s: unknown): string =>
+  String(s ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
 
 function levenshtein(a: string, b: string): number {
   const m = a.length;
   const n = b.length;
   const d: number[][] = Array.from({ length: m + 1 }, (_, i) => [i, ...Array<number>(n).fill(0)]);
-  for (let j = 0; j <= n; j++) {d[0][j] = j;}
+  for (let j = 0; j <= n; j++) {
+    d[0][j] = j;
+  }
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
       d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
@@ -42,13 +48,18 @@ function levenshtein(a: string, b: string): number {
 }
 
 function sameSet(a: string[], b: string[]): boolean {
-  if (a.length !== b.length) {return false;}
+  if (a.length !== b.length) {
+    return false;
+  }
   const sb = new Set(b.map(norm));
   return a.every((x) => sb.has(norm(x)));
 }
 
 /** Check one player's answer against the question's config. */
-export function checkAnswer(config: QuestionConfig, value: unknown): { correct: boolean; matchScore: number } {
+export function checkAnswer(
+  config: QuestionConfig,
+  value: unknown,
+): { correct: boolean; matchScore: number } {
   switch (config.answerType) {
     case "single_select":
     case "true_false": {
@@ -63,7 +74,9 @@ export function checkAnswer(config: QuestionConfig, value: unknown): { correct: 
       const strategy = config.answerCheck?.strategy ?? "exact";
       const a = norm(value);
       const b = norm(config.answer as string);
-      if (strategy === "exact") {return { correct: a === b, matchScore: a === b ? 1 : 0 };}
+      if (strategy === "exact") {
+        return { correct: a === b, matchScore: a === b ? 1 : 0 };
+      }
       const score = 1 - levenshtein(a, b) / Math.max(b.length, 1);
       const threshold = config.answerCheck?.threshold ?? 0.8;
       return { correct: score >= threshold, matchScore: Math.max(0, Math.round(score * 100) / 100) };
@@ -82,7 +95,9 @@ export const questionBrick: BrickDefinition<QuestionConfig, QuestionState, Sessi
       startedAt: ctx.now,
     }),
     reduce: (config: QuestionConfig, state: QuestionState, ev: SessionEvent): QuestionState => {
-      if (state.phase !== "awaiting") {return state;}
+      if (state.phase !== "awaiting") {
+        return state;
+      }
       switch (ev.type) {
         case "PLAYER_INPUT": {
           const now = ev.now ?? 0;

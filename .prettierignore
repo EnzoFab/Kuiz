@@ -1,0 +1,7 @@
+node_modules
+**/dist
+.turbo
+pnpm-lock.yaml
+prototypes
+# Markdown docs are hand-authored (specs, CONTEXT, build plan) — formatted by hand.
+**/*.md
