@@ -47,9 +47,11 @@ NEXT/timer). *Done:* tests; no outcome emitted.
 
 ## Phase 3 — Play locally (offline first) (`apps/web`)
 
-**B8. Web shell + view registry.** Vite+React app; `brickViews` map; render engine state;
-web views for question + presentational bricks. *Done:* a hardcoded one-segment quiz is
-playable in the browser, Scorecard shows.
+**B8. Web shell + design foundation + view registry.** Vite+React app; **Tailwind + shadcn/ui;
+CSS-variable token theme (light/dark)**; a small shared `ui/` kit (tokens + primitives);
+`brickViews` map; web views for question + presentational bricks consuming shared tokens.
+*Done:* a hardcoded one-segment quiz is playable in the browser, themed, Scorecard shows.
+(spec: design-system, online-session)
 
 **B9. Offline walkthrough.** Host view + GM controls (next/reveal/back) driving the engine
 locally. *Done:* a template game is walked end-to-end offline. (spec: offline-runtime)
