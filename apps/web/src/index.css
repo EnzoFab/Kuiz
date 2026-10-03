@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens (B8 foundation). Light + dark from day one via prefers-color-scheme.
+ * Components consume only tokens, so a future brand pass is a token swap. See
+ * docs/spec/design-system.md.
+ */
+:root {
+  --background: #f6f7fb;
+  --foreground: #14162b;
+  --card: #ffffff;
+  --card-foreground: #14162b;
+  --primary: #5b5bf0;
+  --primary-foreground: #ffffff;
+  --muted: #eceef6;
+  --muted-foreground: #5b628a;
+  --border: #e2e6f1;
+  --good: #16a34a;
+  --bad: #e11d6b;
+  --radius: 0.9rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0e1020;
+    --foreground: #eef0fb;
+    --card: #181b33;
+    --card-foreground: #eef0fb;
+    --primary: #7c7cff;
+    --primary-foreground: #0e1020;
+    --muted: #222643;
+    --muted-foreground: #a3abd6;
+    --border: #2c3156;
+    --good: #3ecf8e;
+    --bad: #ff6b9a;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-good: var(--good);
+  --color-bad: var(--bad);
+  --radius-xl: var(--radius);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
