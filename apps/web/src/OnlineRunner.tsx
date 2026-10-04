@@ -37,6 +37,7 @@ export function OnlineRunner({
 }) {
   const socketRef = useRef<Socket | null>(null);
   const [state, setState] = useState<SessionState | null>(null);
+  const [revealedAnswer, setRevealedAnswer] = useState<unknown>(undefined);
   const [game, setGame] = useState<Game | null>(null);
   const [me, setMe] = useState<{ playerId: string; hostId?: string; code?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +66,13 @@ export function OnlineRunner({
       }
     };
 
-    socket.on("state", ({ state: next }: { state: SessionState }) => setState(next));
+    socket.on(
+      "state",
+      ({ state: next, revealedAnswer: ra }: { state: SessionState; revealedAnswer?: unknown }) => {
+        setState(next);
+        setRevealedAnswer(ra);
+      },
+    );
     socket.on("connect", () => {
       if (intent === "host") {
         socket.emit("create", { nickname }, handleResult);
@@ -151,6 +158,7 @@ export function OnlineRunner({
               config={current.brick.config}
               state={state.brickState}
               isRevealed={isRevealed}
+              revealedAnswer={revealedAnswer}
               player={me.playerId}
               onEvent={send}
             />

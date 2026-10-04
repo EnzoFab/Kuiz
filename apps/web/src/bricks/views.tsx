@@ -13,6 +13,8 @@ export interface BrickPlayProps {
   config: any;
   state: any;
   isRevealed: boolean;
+  /** Correct answer supplied by the server at reveal (when the config's answer is hidden). */
+  revealedAnswer?: unknown;
   player: string;
   onEvent: (ev: SessionEvent) => void;
 }
@@ -21,11 +23,14 @@ export interface BrickView {
   Play: (props: BrickPlayProps) => JSX.Element;
 }
 
-function QuestionPlay({ config, state, isRevealed, player, onEvent }: BrickPlayProps) {
+const formatAnswer = (a: unknown): string => (Array.isArray(a) ? a.join(", ") : String(a));
+
+function QuestionPlay({ config, state, isRevealed, revealedAnswer, player, onEvent }: BrickPlayProps) {
   const [draft, setDraft] = useState("");
   const [picks, setPicks] = useState<string[]>([]);
   const mine = state?.answers?.[player]?.value;
   const hasAnswered = mine !== undefined;
+  const shownAnswer = config.answer ?? revealedAnswer; // config answer is stripped for players
   const answer = (input: unknown) =>
     onEvent({ type: "PLAYER_INPUT", playerId: player, input, now: Date.now() });
 
@@ -99,11 +104,7 @@ function QuestionPlay({ config, state, isRevealed, player, onEvent }: BrickPlayP
       )}
 
       {hasAnswered && !isRevealed && <p className="text-muted-foreground">Answer locked in ✓</p>}
-      {isRevealed && (
-        <p className="text-good font-semibold">
-          Correct answer: {Array.isArray(config.answer) ? config.answer.join(", ") : String(config.answer)}
-        </p>
-      )}
+      {isRevealed && <p className="text-good font-semibold">Correct answer: {formatAnswer(shownAnswer)}</p>}
     </div>
   );
 }
