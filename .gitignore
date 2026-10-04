@@ -148,3 +148,8 @@ dist/
 
 # Prisma generated client
 apps/server/src/generated/
+
+# Playwright screenshots + artifacts
+apps/web/screenshots/
+apps/web/test-results/
+apps/web/playwright-report/
