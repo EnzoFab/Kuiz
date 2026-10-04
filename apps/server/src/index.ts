@@ -6,7 +6,9 @@ import { demoGame } from "./demo.js";
 
 const port = Number(process.env.PORT ?? 3001);
 const app = buildApp();
-const store = new SessionStore(brickRegistry.resolver());
+const store = new SessionStore(brickRegistry.resolver(), (type) =>
+  brickRegistry.has(type) ? brickRegistry.get(type) : undefined,
+);
 
 app
   .listen({ port, host: "0.0.0.0" })
