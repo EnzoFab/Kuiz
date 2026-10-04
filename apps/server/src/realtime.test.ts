@@ -92,6 +92,30 @@ describe("realtime lifecycle", () => {
     p2.close();
   });
 
+  it("ignores a non-host trying to START (server-authoritative)", async () => {
+    const host = await connect();
+    const created = await emit<JoinResult>(host, "create", { nickname: "GM" });
+    const player = await connect();
+    await emit<JoinResult>(player, "join", { code: created.code, nickname: "Al" });
+
+    // A player's START must be rejected; the host's must take effect.
+    const hostPlaying = new Promise<SessionState>((resolve) => {
+      host.on("state", ({ state }: { state: SessionState }) => {
+        if (state.phase === "playing") {
+          resolve(state);
+        }
+      });
+    });
+    player.emit("event", { event: { type: "START" } });
+    await new Promise((r) => setTimeout(r, 50)); // give the (rejected) event time to NOT apply
+    host.emit("event", { event: { type: "START" } });
+    const state = await hostPlaying;
+    expect(state.phase).toBe("playing");
+
+    host.close();
+    player.close();
+  });
+
   it("returns an error for an unknown code", async () => {
     const client = await connect();
     const result = await emit<JoinResult>(client, "join", { code: "ZZZZ", nickname: "x" });

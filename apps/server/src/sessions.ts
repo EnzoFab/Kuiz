@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 import {
   initSession,
+  orderedLeaves,
   reduceSession,
+  type BrickDefinition,
   type BrickResolver,
   type Game,
   type SessionEvent,
@@ -23,6 +25,18 @@ export interface StoredSession {
   hostId?: string;
 }
 
+/** Resolves a Brick's full definition by type — needed for the optional `server` handler. */
+export type BrickDefResolver = (type: string) => BrickDefinition | undefined;
+
+/**
+ * A Brick whose current reducer state exposes a non-null `pendingServerRequest` is asking
+ * the server handler to run; the handler's result re-enters `reduce` (clearing the request).
+ * This is the only shape the shell reads out of the otherwise-opaque brickState.
+ */
+interface PendingServer {
+  pendingServerRequest?: unknown;
+}
+
 function makeCode(): string {
   return Math.random().toString(36).slice(2, 6).toUpperCase();
 }
@@ -31,7 +45,16 @@ export class SessionStore {
   private readonly byId = new Map<string, StoredSession>();
   private readonly idByCode = new Map<string, string>();
 
-  constructor(private readonly resolve: BrickResolver) {}
+  /**
+   * @param resolve  Brick logic resolver (drives the pure engine).
+   * @param defFor   Brick definition resolver, for the optional async `server` handler.
+   * @param now      Server clock injected into the engine (brick start time, etc.).
+   */
+  constructor(
+    private readonly resolve: BrickResolver,
+    private readonly defFor?: BrickDefResolver,
+    private readonly now: () => number = () => Date.now(),
+  ) {}
 
   create(
     game: Game,
@@ -64,7 +87,36 @@ export class SessionStore {
     if (!session) {
       return undefined;
     }
-    session.state = reduceSession(session.game, session.state, event, { resolve: this.resolve });
+    session.state = reduceSession(session.game, session.state, event, {
+      resolve: this.resolve,
+      now: this.now,
+    });
     return session;
+  }
+
+  /**
+   * If the current Brick has a `server` handler and its reducer state has posted a request,
+   * run the handler and feed the result back into the engine as a `SERVER_RESULT`. The impure
+   * shell of the flow engine (integrations, AI) lives here; the reducer stays pure. One shot —
+   * a request posted by the result is drained on the next transition. No-op unless a `defFor`
+   * was given and the current Brick both has a handler and a pending request.
+   */
+  async runServerHandler(id: string): Promise<void> {
+    const session = this.byId.get(id);
+    if (!session || !this.defFor) {
+      return;
+    }
+    const cursor = session.state.cursor;
+    const leaf = cursor == null ? undefined : orderedLeaves(session.game.root).find((l) => l.id === cursor);
+    const handler = leaf && this.defFor(leaf.brick.type)?.server;
+    const request = (session.state.brickState as PendingServer | null)?.pendingServerRequest;
+    if (!leaf || !handler || request == null) {
+      return;
+    }
+    const result = await handler.resolve(leaf.brick.config, request);
+    session.state = reduceSession(session.game, session.state, result, {
+      resolve: this.resolve,
+      now: this.now,
+    });
   }
 }

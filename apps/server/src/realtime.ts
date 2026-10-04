@@ -4,6 +4,7 @@ import { Server as IOServer, type Socket } from "socket.io";
 import type { Game, SessionEvent } from "@kuiz/core";
 import type { SessionStore } from "./sessions.js";
 import { projectGame, projectState } from "./projection.js";
+import { authorizeClientEvent } from "./authorize.js";
 
 /**
  * The realtime runtime shell: Socket.IO over the HTTP server, one Room per Session. Client
@@ -159,7 +160,22 @@ export function attachRealtime(httpServer: HttpServer, store: SessionStore, game
       if (!context) {
         return;
       }
-      store.apply(context.sessionId, event);
+      const session = store.get(context.sessionId);
+      if (!session) {
+        return;
+      }
+      // Trust boundary: normalize/reject before applying — the client can't fake identity,
+      // timing, or host-only flow control (B14).
+      const authorized = authorizeClientEvent(event, {
+        playerId: context.playerId,
+        isHost: context.playerId === session.hostId,
+        now: Date.now(),
+      });
+      if (!authorized) {
+        return;
+      }
+      store.apply(context.sessionId, authorized);
+      await store.runServerHandler(context.sessionId);
       await broadcast(context.sessionId);
     });
 
