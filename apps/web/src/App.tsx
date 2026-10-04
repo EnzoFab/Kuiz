@@ -4,6 +4,7 @@ import { GameRunner } from "./GameRunner";
 import { OfflineRunner } from "./OfflineRunner";
 import { OnlineRunner } from "./OnlineRunner";
 import { Composer } from "./compose/Composer";
+import { Catalog } from "./catalog/Catalog";
 import { Button, Card, Input } from "./ui";
 
 /**
@@ -61,11 +62,12 @@ const demoGame: Game = parseGame({
   },
 });
 
-type Mode = "menu" | "play" | "offline" | "online-setup" | "online" | "compose";
+type Mode = "menu" | "play" | "offline" | "online-setup" | "online" | "compose" | "catalog";
 
 export function App() {
   const [mode, setMode] = useState<Mode>("menu");
-  const [playGame, setPlayGame] = useState<Game>(demoGame);
+  // The Game selected to play, in any mode — set by the catalog/composer; defaults to the demo.
+  const [selectedGame, setSelectedGame] = useState<Game>(demoGame);
   const [nickname, setNickname] = useState("");
   const [code, setCode] = useState("");
   const [rosterText, setRosterText] = useState("");
@@ -86,14 +88,17 @@ export function App() {
           <h1 className="text-3xl font-extrabold tracking-tight">{demoGame.title}</h1>
           <Card className="space-y-3">
             <p className="text-muted-foreground">Choose how to run this game.</p>
-            <Button className="w-full" onClick={() => setMode("online-setup")}>
-              Play online
+            <Button className="w-full" onClick={() => setMode("catalog")}>
+              Browse catalog
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => setMode("online-setup")}>
+              Play online (demo)
             </Button>
             <Button variant="outline" className="w-full" onClick={() => setMode("play")}>
-              Play on this device
+              Play on this device (demo)
             </Button>
             <Button variant="outline" className="w-full" onClick={() => setMode("offline")}>
-              Offline walkthrough (host)
+              Offline walkthrough (demo)
             </Button>
             <div className="border-border my-1 border-t" />
             <Button variant="outline" className="w-full" onClick={() => setMode("compose")}>
@@ -176,12 +181,21 @@ export function App() {
         </div>
       )}
 
-      {mode === "play" && <GameRunner game={playGame} />}
-      {mode === "offline" && <OfflineRunner game={demoGame} onExit={toMenu} />}
+      {mode === "play" && <GameRunner game={selectedGame} />}
+      {mode === "offline" && <OfflineRunner game={selectedGame} onExit={toMenu} />}
+      {mode === "catalog" && (
+        <Catalog
+          onLaunch={(game, launch) => {
+            setSelectedGame(game);
+            setMode(launch === "online" ? "online-setup" : launch);
+          }}
+          onExit={toMenu}
+        />
+      )}
       {mode === "compose" && (
         <Composer
           onPlay={(game) => {
-            setPlayGame(game);
+            setSelectedGame(game);
             setMode("play");
           }}
           onExit={toMenu}
@@ -193,6 +207,7 @@ export function App() {
           code={code}
           nickname={nickname}
           roster={intent === "host" && isPrivateHost ? roster : undefined}
+          hostGame={selectedGame}
           onExit={toMenu}
         />
       )}
