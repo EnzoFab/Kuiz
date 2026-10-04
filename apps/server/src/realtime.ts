@@ -44,7 +44,8 @@ interface JoinResult {
 type Ack = (result: JoinResult) => void;
 
 export function attachRealtime(httpServer: HttpServer, store: SessionStore, gameFor: () => Game): IOServer {
-  const io = new IOServer(httpServer, { cors: { origin: "*" } });
+  // CORS origin is configurable for production (set CORS_ORIGIN to the web origin); "*" in dev.
+  const io = new IOServer(httpServer, { cors: { origin: process.env.CORS_ORIGIN ?? "*" } });
 
   // Broadcast a per-viewer projected state to every socket in the session room (B12).
   const broadcast = async (sessionId: string): Promise<void> => {
