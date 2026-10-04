@@ -19,6 +19,18 @@ function Centered({ children }: { children: ReactNode }) {
   return <div className="mx-auto max-w-md space-y-4 p-6 text-center">{children}</div>;
 }
 
+/** Remember this tab's player for the code, so a reload reconnects to the same player. */
+function persistSlot(code: string | undefined, playerId: string | undefined): void {
+  if (!code || !playerId) {
+    return;
+  }
+  try {
+    sessionStorage.setItem(`kuiz:player:${code}`, playerId);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 /**
  * Online play (B11, open mode): connects to the realtime server, hosts or joins a Session,
  * and drives the lobby → play → results loop. The Game Master controls Start/Reveal/Next;
@@ -28,42 +40,45 @@ export function OnlineRunner({
   intent,
   code,
   nickname,
+  roster,
   onExit,
 }: {
-  intent: "host" | "join";
+  intent: "host" | "join" | "watch";
   code?: string;
   nickname: string;
+  roster?: string[];
   onExit: () => void;
 }) {
   const socketRef = useRef<Socket | null>(null);
   const [state, setState] = useState<SessionState | null>(null);
   const [revealedAnswer, setRevealedAnswer] = useState<unknown>(undefined);
   const [game, setGame] = useState<Game | null>(null);
-  const [me, setMe] = useState<{ playerId: string; hostId?: string; code?: string } | null>(null);
+  const [me, setMe] = useState<{ playerId?: string; hostId?: string; code?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const socket = connectSocket();
     socketRef.current = socket;
 
+    const storedSlot = (): string | undefined => {
+      try {
+        return (code ? sessionStorage.getItem(`kuiz:player:${code}`) : null) ?? undefined;
+      } catch {
+        return undefined;
+      }
+    };
+
     const handleResult = (res: JoinResult): void => {
       if (res.error) {
         setError(res.error);
         return;
       }
-      setMe({ playerId: res.playerId!, hostId: res.hostId, code: res.code });
+      setMe({ playerId: res.playerId, hostId: res.hostId, code: res.code });
       if (res.game) {
         setGame(res.game);
       }
-      if (res.code && res.playerId) {
-        try {
-          // sessionStorage is per-tab: reconnects this tab on reload, and two tabs are two
-          // players (localStorage would make a second tab reconnect as the first).
-          sessionStorage.setItem(`kuiz:player:${res.code}`, res.playerId);
-        } catch {
-          /* storage unavailable */
-        }
-      }
+      // Per-tab (not localStorage): two tabs are two players; a reload reconnects this one.
+      persistSlot(res.code, res.playerId);
     };
 
     socket.on(
@@ -75,15 +90,18 @@ export function OnlineRunner({
     );
     socket.on("connect", () => {
       if (intent === "host") {
-        socket.emit("create", { nickname }, handleResult);
+        socket.emit("create", { nickname, roster }, handleResult);
+      } else if (intent === "watch") {
+        socket.emit("watch", { code }, (res: JoinResult) => {
+          handleResult(res);
+          // Reconnect: if this tab already claimed a slot, reclaim it automatically.
+          const slot = storedSlot();
+          if (slot) {
+            socket.emit("claim", { playerSlotId: slot }, handleResult);
+          }
+        });
       } else {
-        let stored: string | null = null;
-        try {
-          stored = code ? sessionStorage.getItem(`kuiz:player:${code}`) : null;
-        } catch {
-          /* ignore */
-        }
-        socket.emit("join", { code, nickname, playerId: stored ?? undefined }, handleResult);
+        socket.emit("join", { code, nickname, playerId: storedSlot() }, handleResult);
       }
     });
 
@@ -95,6 +113,17 @@ export function OnlineRunner({
 
   const send = (event: SessionEvent): void => {
     socketRef.current?.emit("event", { event });
+  };
+
+  const claim = (slotId: string): void => {
+    socketRef.current?.emit("claim", { playerSlotId: slotId }, (res: JoinResult) => {
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      setMe({ playerId: res.playerId, hostId: res.hostId, code: res.code });
+      persistSlot(res.code, res.playerId);
+    });
   };
 
   if (error) {
@@ -113,7 +142,43 @@ export function OnlineRunner({
     );
   }
 
-  const isHost = me.hostId === me.playerId;
+  // Private mode: a watcher must claim a roster slot before playing.
+  if (state.joinMode === "private" && !me.playerId) {
+    return (
+      <div className="mx-auto max-w-md space-y-4 p-4">
+        <h1 className="text-xl font-extrabold tracking-tight">Pick your player</h1>
+        <Card className="space-y-2">
+          {Object.entries(state.players)
+            .filter(([id]) => id !== me.hostId)
+            .map(([id, p]) => (
+              <Button
+                key={id}
+                variant="outline"
+                className="w-full justify-between"
+                disabled={p.claimed}
+                onClick={() => claim(id)}
+              >
+                <span>{p.nickname}</span>
+                {p.claimed && <span className="text-muted-foreground">taken</span>}
+              </Button>
+            ))}
+        </Card>
+        <Button variant="outline" onClick={onExit}>
+          Back
+        </Button>
+      </div>
+    );
+  }
+
+  if (!me.playerId) {
+    return (
+      <Centered>
+        <p className="text-muted-foreground">Connecting…</p>
+      </Centered>
+    );
+  }
+  const myId = me.playerId;
+  const isHost = me.hostId === myId;
   const leaves = orderedLeaves(game.root);
   const index = leaves.findIndex((l) => l.id === state.cursor);
   const current = leaves[index];
@@ -136,7 +201,7 @@ export function OnlineRunner({
               <li key={id} className="flex items-center gap-2">
                 <span className={p.isConnected ? "text-good" : "text-muted-foreground"}>●</span>
                 {p.nickname}
-                {id === me.playerId && <span className="text-muted-foreground"> (you)</span>}
+                {id === myId && <span className="text-muted-foreground"> (you)</span>}
                 {id === me.hostId && <span className="text-muted-foreground"> · host</span>}
               </li>
             ))}
@@ -159,7 +224,7 @@ export function OnlineRunner({
               state={state.brickState}
               isRevealed={isRevealed}
               revealedAnswer={revealedAnswer}
-              player={me.playerId}
+              player={myId}
               onEvent={send}
             />
           </Card>

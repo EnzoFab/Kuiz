@@ -66,7 +66,14 @@ export function App() {
   const [mode, setMode] = useState<Mode>("menu");
   const [nickname, setNickname] = useState("");
   const [code, setCode] = useState("");
-  const [intent, setIntent] = useState<"host" | "join">("host");
+  const [rosterText, setRosterText] = useState("");
+  const [intent, setIntent] = useState<"host" | "join" | "watch">("host");
+  const [isPrivateHost, setIsPrivateHost] = useState(false);
+
+  const roster = rosterText
+    .split(",")
+    .map((n) => n.trim())
+    .filter(Boolean);
 
   const toMenu = () => setMode("menu");
 
@@ -104,6 +111,7 @@ export function App() {
               disabled={!nickname}
               onClick={() => {
                 setIntent("host");
+                setIsPrivateHost(false);
                 setMode("online");
               }}
             >
@@ -126,6 +134,35 @@ export function App() {
             >
               Join with code
             </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={!code}
+              onClick={() => {
+                setIntent("watch");
+                setMode("online");
+              }}
+            >
+              Join private game (pick a player)
+            </Button>
+            <div className="border-border my-1 border-t" />
+            <Input
+              placeholder="Private roster: Alice, Bob, Chloé"
+              value={rosterText}
+              onChange={(e) => setRosterText(e.target.value)}
+            />
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={!nickname || roster.length === 0}
+              onClick={() => {
+                setIntent("host");
+                setIsPrivateHost(true);
+                setMode("online");
+              }}
+            >
+              Host private game
+            </Button>
             <Button variant="outline" className="w-full" onClick={toMenu}>
               Back
             </Button>
@@ -135,7 +172,15 @@ export function App() {
 
       {mode === "play" && <GameRunner game={demoGame} />}
       {mode === "offline" && <OfflineRunner game={demoGame} onExit={toMenu} />}
-      {mode === "online" && <OnlineRunner intent={intent} code={code} nickname={nickname} onExit={toMenu} />}
+      {mode === "online" && (
+        <OnlineRunner
+          intent={intent}
+          code={code}
+          nickname={nickname}
+          roster={intent === "host" && isPrivateHost ? roster : undefined}
+          onExit={toMenu}
+        />
+      )}
     </main>
   );
 }

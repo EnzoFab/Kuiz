@@ -13,6 +13,7 @@ interface JoinResult {
   code?: string;
   playerId?: string;
   hostId?: string;
+  joinMode?: string;
   error?: string;
 }
 
@@ -96,5 +97,41 @@ describe("realtime lifecycle", () => {
     const result = await emit<JoinResult>(client, "join", { code: "ZZZZ", nickname: "x" });
     expect(result.error).toBe("Session not found");
     client.close();
+  });
+
+  it("private mode: host sets a roster, a player watches then claims a slot, and reconnects to it", async () => {
+    const host = await connect();
+    const created = await emit<JoinResult>(host, "create", { nickname: "GM", roster: ["Alice", "Bob"] });
+    expect(created.joinMode).toBe("private");
+
+    const nextState = (s: Socket) =>
+      new Promise<SessionState>((resolve) =>
+        s.once("state", ({ state }: { state: SessionState }) => resolve(state)),
+      );
+
+    const player = await connect();
+    const rosterPromise = nextState(player); // listen before emitting (broadcast fires immediately)
+    const watched = await emit<JoinResult>(player, "watch", { code: created.code });
+    expect(watched.joinMode).toBe("private");
+
+    const roster = await rosterPromise;
+    const slotId = Object.entries(roster.players).find(([, p]) => p.claimed === false)?.[0];
+    expect(slotId).toBeDefined();
+
+    const afterClaimPromise = nextState(player);
+    const claimed = await emit<JoinResult>(player, "claim", { playerSlotId: slotId });
+    expect(claimed.playerId).toBe(slotId);
+    const afterClaim = await afterClaimPromise;
+    expect(afterClaim.players[slotId!]).toMatchObject({ claimed: true, isConnected: true });
+
+    // Reconnect: a new socket watches and claims the same slot → same identity.
+    player.close();
+    const player2 = await connect();
+    await emit(player2, "watch", { code: created.code });
+    const reclaimed = await emit<JoinResult>(player2, "claim", { playerSlotId: slotId });
+    expect(reclaimed.playerId).toBe(slotId);
+
+    host.close();
+    player2.close();
   });
 });

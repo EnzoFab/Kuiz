@@ -15,11 +15,19 @@ import { projectGame, projectState } from "./projection.js";
 
 interface CreatePayload {
   nickname: string;
+  /** Private mode: pre-created player names. Open mode when empty/absent. */
+  roster?: string[];
 }
 interface JoinPayload {
   code: string;
   nickname: string;
   playerId?: string; // for reconnection
+}
+interface WatchPayload {
+  code: string;
+}
+interface ClaimPayload {
+  playerSlotId: string;
 }
 interface JoinResult {
   sessionId?: string;
@@ -27,6 +35,7 @@ interface JoinResult {
   playerId?: string;
   hostId?: string;
   game?: Game;
+  joinMode?: "open" | "private";
   error?: string;
 }
 type Ack = (result: JoinResult) => void;
@@ -50,15 +59,21 @@ export function attachRealtime(httpServer: HttpServer, store: SessionStore, game
   };
 
   io.on("connection", (socket: Socket) => {
-    let context: { sessionId: string; playerId: string } | null = null;
+    let context: { sessionId: string; playerId?: string } | null = null;
 
-    socket.on("create", async ({ nickname }: CreatePayload, ack?: Ack) => {
-      const session = store.create(gameFor());
+    socket.on("create", async ({ nickname, roster }: CreatePayload, ack?: Ack) => {
+      const isPrivate = Array.isArray(roster) && roster.length > 0;
+      const session = store.create(gameFor(), "online", isPrivate ? "private" : "open");
       const playerId = randomUUID();
       session.hostId = playerId;
       socket.data.playerId = playerId;
       socket.join(session.id);
       store.apply(session.id, { type: "PLAYER_JOINED", playerId, nickname });
+      if (isPrivate) {
+        for (const name of roster) {
+          store.apply(session.id, { type: "ADD_SLOT", playerId: randomUUID(), nickname: name });
+        }
+      }
       context = { sessionId: session.id, playerId };
       ack?.({
         sessionId: session.id,
@@ -66,6 +81,7 @@ export function attachRealtime(httpServer: HttpServer, store: SessionStore, game
         playerId,
         hostId: playerId,
         game: projectGame(session.game, true),
+        joinMode: session.state.joinMode,
       });
       await broadcast(session.id);
     });
@@ -90,8 +106,53 @@ export function attachRealtime(httpServer: HttpServer, store: SessionStore, game
         playerId,
         hostId: session.hostId,
         game: projectGame(session.game, isHost),
+        joinMode: session.state.joinMode,
       });
       await broadcast(session.id);
+    });
+
+    // Private mode: connect to watch (receive the roster) before claiming a slot.
+    socket.on("watch", async ({ code }: WatchPayload, ack?: Ack) => {
+      const session = store.getByCode(code);
+      if (!session) {
+        ack?.({ error: "Session not found" });
+        return;
+      }
+      socket.join(session.id);
+      context = { sessionId: session.id };
+      ack?.({
+        sessionId: session.id,
+        code: session.code,
+        hostId: session.hostId,
+        game: projectGame(session.game, false),
+        joinMode: session.state.joinMode,
+      });
+      await broadcast(session.id);
+    });
+
+    // Private mode: claim a roster slot (also reconnects to a previously claimed slot).
+    socket.on("claim", async ({ playerSlotId }: ClaimPayload, ack?: Ack) => {
+      if (!context) {
+        ack?.({ error: "Not in a session" });
+        return;
+      }
+      const session = store.get(context.sessionId);
+      if (!session || !session.state.players[playerSlotId]) {
+        ack?.({ error: "Slot not found" });
+        return;
+      }
+      store.apply(context.sessionId, { type: "CLAIM", playerId: playerSlotId });
+      context = { ...context, playerId: playerSlotId };
+      socket.data.playerId = playerSlotId;
+      ack?.({
+        sessionId: context.sessionId,
+        code: session.code,
+        playerId: playerSlotId,
+        hostId: session.hostId,
+        game: projectGame(session.game, false),
+        joinMode: session.state.joinMode,
+      });
+      await broadcast(context.sessionId);
     });
 
     socket.on("event", async ({ event }: { event: SessionEvent }) => {
@@ -103,7 +164,7 @@ export function attachRealtime(httpServer: HttpServer, store: SessionStore, game
     });
 
     socket.on("disconnect", async () => {
-      if (!context) {
+      if (!context?.playerId) {
         return;
       }
       store.apply(context.sessionId, { type: "PLAYER_LEFT", playerId: context.playerId });
