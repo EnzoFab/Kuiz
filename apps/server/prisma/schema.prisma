@@ -1,0 +1,26 @@
+// Persistence schema (B15). See docs/spec/persistence-model.md.
+// One `games` table: the Game document lives in a JSON column (source of truth);
+// title/visibility/ownerId are extracted for listing and the future ownership model.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  runtime      = "nodejs"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Game {
+  id         String   @id
+  json       Json
+  title      String
+  visibility String
+  ownerId    String?  @map("owner_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("games")
+}

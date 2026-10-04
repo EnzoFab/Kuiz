@@ -8,7 +8,7 @@ import globals from "globals";
  *  - booleans read as a question (is/has/can/should/… prefix) — typed rule on source
  */
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/node_modules/**", "**/.turbo/**", "prototypes/**"] },
+  { ignores: ["**/dist/**", "**/node_modules/**", "**/.turbo/**", "prototypes/**", "**/generated/**"] },
 
   // Base rules for all TS/TSX.
   js.configs.recommended,

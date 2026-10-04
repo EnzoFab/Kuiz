@@ -145,3 +145,6 @@ vite.config.ts.timestamp-*
 # Monorepo build outputs
 dist/
 .turbo/
+
+# Prisma generated client
+apps/server/src/generated/
