@@ -19,6 +19,8 @@ export interface StoredSession {
   code: string;
   game: Game;
   state: SessionState;
+  /** playerId of the Game Master (the creator). */
+  hostId?: string;
 }
 
 function makeCode(): string {

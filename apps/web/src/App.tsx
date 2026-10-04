@@ -2,7 +2,8 @@ import { useState } from "react";
 import { parseGame, type Game } from "@kuiz/core";
 import { GameRunner } from "./GameRunner";
 import { OfflineRunner } from "./OfflineRunner";
-import { Button, Card } from "./ui";
+import { OnlineRunner } from "./OnlineRunner";
+import { Button, Card, Input } from "./ui";
 
 /**
  * Hardcoded demo game + a mode switch between the device-play harness (B8) and the offline
@@ -59,10 +60,15 @@ const demoGame: Game = parseGame({
   },
 });
 
-type Mode = "menu" | "play" | "offline";
+type Mode = "menu" | "play" | "offline" | "online-setup" | "online";
 
 export function App() {
   const [mode, setMode] = useState<Mode>("menu");
+  const [nickname, setNickname] = useState("");
+  const [code, setCode] = useState("");
+  const [intent, setIntent] = useState<"host" | "join">("host");
+
+  const toMenu = () => setMode("menu");
 
   return (
     <main className="min-h-screen py-6">
@@ -71,7 +77,10 @@ export function App() {
           <h1 className="text-3xl font-extrabold tracking-tight">{demoGame.title}</h1>
           <Card className="space-y-3">
             <p className="text-muted-foreground">Choose how to run this game.</p>
-            <Button className="w-full" onClick={() => setMode("play")}>
+            <Button className="w-full" onClick={() => setMode("online-setup")}>
+              Play online
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => setMode("play")}>
               Play on this device
             </Button>
             <Button variant="outline" className="w-full" onClick={() => setMode("offline")}>
@@ -80,8 +89,53 @@ export function App() {
           </Card>
         </div>
       )}
+
+      {mode === "online-setup" && (
+        <div className="mx-auto max-w-md space-y-4 p-4">
+          <h1 className="text-2xl font-extrabold tracking-tight">Play online</h1>
+          <Card className="space-y-3">
+            <Input
+              placeholder="Your nickname"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+            />
+            <Button
+              className="w-full"
+              disabled={!nickname}
+              onClick={() => {
+                setIntent("host");
+                setMode("online");
+              }}
+            >
+              Host a new game
+            </Button>
+            <div className="border-border my-1 border-t" />
+            <Input
+              placeholder="Join code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+            />
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={!nickname || !code}
+              onClick={() => {
+                setIntent("join");
+                setMode("online");
+              }}
+            >
+              Join with code
+            </Button>
+            <Button variant="outline" className="w-full" onClick={toMenu}>
+              Back
+            </Button>
+          </Card>
+        </div>
+      )}
+
       {mode === "play" && <GameRunner game={demoGame} />}
-      {mode === "offline" && <OfflineRunner game={demoGame} onExit={() => setMode("menu")} />}
+      {mode === "offline" && <OfflineRunner game={demoGame} onExit={toMenu} />}
+      {mode === "online" && <OnlineRunner intent={intent} code={code} nickname={nickname} onExit={toMenu} />}
     </main>
   );
 }
