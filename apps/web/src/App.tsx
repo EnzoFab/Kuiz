@@ -3,6 +3,7 @@ import { parseGame, type Game } from "@kuiz/core";
 import { GameRunner } from "./GameRunner";
 import { OfflineRunner } from "./OfflineRunner";
 import { OnlineRunner } from "./OnlineRunner";
+import { Composer } from "./compose/Composer";
 import { Button, Card, Input } from "./ui";
 
 /**
@@ -60,10 +61,11 @@ const demoGame: Game = parseGame({
   },
 });
 
-type Mode = "menu" | "play" | "offline" | "online-setup" | "online";
+type Mode = "menu" | "play" | "offline" | "online-setup" | "online" | "compose";
 
 export function App() {
   const [mode, setMode] = useState<Mode>("menu");
+  const [playGame, setPlayGame] = useState<Game>(demoGame);
   const [nickname, setNickname] = useState("");
   const [code, setCode] = useState("");
   const [rosterText, setRosterText] = useState("");
@@ -92,6 +94,10 @@ export function App() {
             </Button>
             <Button variant="outline" className="w-full" onClick={() => setMode("offline")}>
               Offline walkthrough (host)
+            </Button>
+            <div className="border-border my-1 border-t" />
+            <Button variant="outline" className="w-full" onClick={() => setMode("compose")}>
+              Create / edit games
             </Button>
           </Card>
         </div>
@@ -170,8 +176,17 @@ export function App() {
         </div>
       )}
 
-      {mode === "play" && <GameRunner game={demoGame} />}
+      {mode === "play" && <GameRunner game={playGame} />}
       {mode === "offline" && <OfflineRunner game={demoGame} onExit={toMenu} />}
+      {mode === "compose" && (
+        <Composer
+          onPlay={(game) => {
+            setPlayGame(game);
+            setMode("play");
+          }}
+          onExit={toMenu}
+        />
+      )}
       {mode === "online" && (
         <OnlineRunner
           intent={intent}
