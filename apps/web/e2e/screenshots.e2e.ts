@@ -35,6 +35,25 @@ test("catalog → play Themed A–Z", async ({ page }) => {
   await page.screenshot({ path: `${DIR}/04-play-az.png` });
 });
 
+test.describe("mobile (375px)", () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  test("key screens have no horizontal overflow", async ({ page }) => {
+    const noOverflow = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+
+    await page.goto("/");
+    expect(await noOverflow()).toBe(true);
+
+    await page.getByRole("button", { name: "Browse catalog" }).click();
+    await page.getByRole("heading", { name: "Catalog" }).waitFor();
+    expect(await noOverflow()).toBe(true);
+
+    await page.locator("li", { hasText: "Simple Quiz" }).getByRole("button", { name: "This device" }).click();
+    await expect(page.getByRole("button", { name: "Reveal" })).toBeVisible();
+    expect(await noOverflow()).toBe(true);
+  });
+});
+
 test("catalog → play Blind Test (audio → question)", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Browse catalog" }).click();

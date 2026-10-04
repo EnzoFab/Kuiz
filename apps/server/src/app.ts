@@ -7,6 +7,11 @@ import Fastify, { type FastifyInstance } from "fastify";
  */
 export function buildApp(): FastifyInstance {
   const app = Fastify();
+  // Allow the web origin to read GET /catalog cross-origin (set CORS_ORIGIN in prod; "*" in
+  // dev). Our routes are simple GETs, so no preflight handling is needed.
+  app.addHook("onRequest", async (_req, reply) => {
+    reply.header("Access-Control-Allow-Origin", process.env.CORS_ORIGIN ?? "*");
+  });
   app.get("/health", async () => ({ status: "ok" }));
   return app;
 }
