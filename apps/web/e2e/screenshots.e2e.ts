@@ -34,3 +34,17 @@ test("catalog → play Themed A–Z", async ({ page }) => {
   await playFromCatalog(page, "Themed A–Z: Capitals");
   await page.screenshot({ path: `${DIR}/04-play-az.png` });
 });
+
+test("catalog → play Blind Test (audio → question)", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Browse catalog" }).click();
+  await page.getByRole("heading", { name: "Catalog" }).waitFor();
+  await page.locator("li", { hasText: "Blind Test" }).getByRole("button", { name: "This device" }).click();
+
+  // First Brick is the audio clip; advancing reaches its question.
+  await expect(page.locator("audio")).toBeVisible();
+  await page.screenshot({ path: `${DIR}/05-blind-test-audio.png` });
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByText("name this track")).toBeVisible();
+  await page.screenshot({ path: `${DIR}/06-blind-test-question.png` });
+});

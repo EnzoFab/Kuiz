@@ -121,6 +121,50 @@ const TEMPLATE_GAMES: Game[] = [
       })),
     },
   }),
+  // B19 Blind Test: the brick-contract's canonical [play music → question] composition, built
+  // from the existing play_audio + question Bricks (no new code). The audio URLs and answers
+  // are placeholders a GM swaps for their own playlist. A dedicated Spotify Brick — whose
+  // server handler holds the API secret (the B14 hook) — is a follow-up once a key exists.
+  parseGame({
+    schemaVersion: 1,
+    id: "template-blind-test",
+    title: "Blind Test",
+    meta: {
+      createdAt: new Date().toISOString(),
+      description: "Play a clip, then guess the track. Swap the audio URLs for your playlist.",
+    },
+    root: {
+      id: "root",
+      kind: "group",
+      scoring: { aggregation: "sum_points" },
+      children: (
+        [
+          ["1", "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", "SoundHelix Song 1"],
+          ["2", "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", "SoundHelix Song 2"],
+        ] as const
+      ).flatMap(([round, url, answer]) => [
+        {
+          id: `bt-audio-${round}`,
+          kind: "brick" as const,
+          brick: { type: "play_audio", config: { url } },
+        },
+        {
+          id: `bt-q-${round}`,
+          kind: "brick" as const,
+          scoring: { basePoints: 10, grading: "scaled" as const, speedBonus: true },
+          brick: {
+            type: "question",
+            config: {
+              prompt: `Round ${round} — name this track`,
+              answerType: "free_text",
+              answer,
+              answerCheck: { strategy: "fuzzy", threshold: 0.6 },
+            },
+          },
+        },
+      ]),
+    },
+  }),
 ];
 
 export interface Template {
