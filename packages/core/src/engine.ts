@@ -27,10 +27,14 @@ export interface EngineDeps {
 }
 
 /** A fresh Session in the lobby, before START. */
-export function initSession(game: Game, opts: { mode: "online" | "offline" }): SessionState {
+export function initSession(
+  game: Game,
+  opts: { mode: "online" | "offline"; joinMode?: "open" | "private" },
+): SessionState {
   return {
     gameId: game.id,
     mode: opts.mode,
+    joinMode: opts.joinMode ?? "open",
     phase: "lobby",
     players: {},
     cursor: null,
@@ -52,6 +56,32 @@ export function reduceSession(game: Game, s: SessionState, ev: SessionEvent, dep
   switch (ev.type) {
     case "PLAYER_JOINED":
       return { ...s, players: { ...s.players, [ev.playerId]: { nickname: ev.nickname, isConnected: true } } };
+
+    case "ADD_SLOT": {
+      // Private mode: pre-create an unclaimed roster slot (no-op if it already exists).
+      if (s.players[ev.playerId]) {
+        return s;
+      }
+      return {
+        ...s,
+        players: {
+          ...s.players,
+          [ev.playerId]: { nickname: ev.nickname, isConnected: false, claimed: false },
+        },
+      };
+    }
+
+    case "CLAIM": {
+      // Private mode: a player claims a roster slot (also serves as reconnection).
+      const slot = s.players[ev.playerId];
+      if (!slot) {
+        return s;
+      }
+      return {
+        ...s,
+        players: { ...s.players, [ev.playerId]: { ...slot, isConnected: true, claimed: true } },
+      };
+    }
 
     case "PLAYER_LEFT": {
       const p = s.players[ev.playerId];

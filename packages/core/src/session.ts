@@ -7,7 +7,11 @@ export type Phase = "lobby" | "playing" | "results";
 export interface Player {
   nickname: string;
   isConnected: boolean;
+  /** Private mode: whether a pre-created roster slot has been claimed by someone. */
+  claimed?: boolean;
 }
+
+export type JoinMode = "open" | "private";
 
 /**
  * The whole runtime state of a Session — fully serializable (it is the value held in the
@@ -20,6 +24,8 @@ export interface Player {
 export interface SessionState {
   gameId: string;
   mode: "online" | "offline";
+  /** How players enter (online). Open = nickname join; private = claim a roster slot. */
+  joinMode: JoinMode;
   phase: Phase;
   players: Record<string, Player>;
   /** The current leaf Segment's id (v1 linear). null before START / after the last leaf. */
@@ -35,6 +41,8 @@ export interface SessionState {
 export type SessionEvent =
   | { type: "START" }
   | { type: "PLAYER_JOINED"; playerId: string; nickname: string }
+  | { type: "ADD_SLOT"; playerId: string; nickname: string }
+  | { type: "CLAIM"; playerId: string }
   | { type: "PLAYER_LEFT"; playerId: string }
   | { type: "PLAYER_INPUT"; playerId: string; input: unknown; now?: number }
   | { type: "TICK"; now: number }

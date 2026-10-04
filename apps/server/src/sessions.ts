@@ -33,13 +33,17 @@ export class SessionStore {
 
   constructor(private readonly resolve: BrickResolver) {}
 
-  create(game: Game, mode: "online" | "offline" = "online"): StoredSession {
+  create(
+    game: Game,
+    mode: "online" | "offline" = "online",
+    joinMode: "open" | "private" = "open",
+  ): StoredSession {
     const id = randomUUID();
     let code = makeCode();
     while (this.idByCode.has(code)) {
       code = makeCode();
     }
-    const session: StoredSession = { id, code, game, state: initSession(game, { mode }) };
+    const session: StoredSession = { id, code, game, state: initSession(game, { mode, joinMode }) };
     this.byId.set(id, session);
     this.idByCode.set(code, id);
     return session;

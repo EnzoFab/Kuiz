@@ -34,6 +34,7 @@ function stateWith(phase: "awaiting" | "revealed", answers: Record<string, unkno
   return {
     gameId: "g",
     mode: "online",
+    joinMode: "open",
     phase: "playing",
     players: {},
     cursor: "q1",
