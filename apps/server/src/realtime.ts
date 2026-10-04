@@ -1,7 +1,7 @@
 import type { Server as HttpServer } from "node:http";
 import { randomUUID } from "node:crypto";
 import { Server as IOServer, type Socket } from "socket.io";
-import type { Game, SessionEvent } from "@kuiz/core";
+import { safeParseGame, type Game, type SessionEvent } from "@kuiz/core";
 import type { SessionStore } from "./sessions.js";
 import { projectGame, projectState } from "./projection.js";
 import { authorizeClientEvent } from "./authorize.js";
@@ -18,6 +18,8 @@ interface CreatePayload {
   nickname: string;
   /** Private mode: pre-created player names. Open mode when empty/absent. */
   roster?: string[];
+  /** The Game to host (from the catalog, B17). Validated server-side; falls back to the demo. */
+  game?: unknown;
 }
 interface JoinPayload {
   code: string;
@@ -62,9 +64,12 @@ export function attachRealtime(httpServer: HttpServer, store: SessionStore, game
   io.on("connection", (socket: Socket) => {
     let context: { sessionId: string; playerId?: string } | null = null;
 
-    socket.on("create", async ({ nickname, roster }: CreatePayload, ack?: Ack) => {
+    socket.on("create", async ({ nickname, roster, game }: CreatePayload, ack?: Ack) => {
       const isPrivate = Array.isArray(roster) && roster.length > 0;
-      const session = store.create(gameFor(), "online", isPrivate ? "private" : "open");
+      // The host may supply a Game to host; validate it server-side (never trust the client).
+      const parsed = game != null ? safeParseGame(game) : null;
+      const chosenGame = parsed?.success ? parsed.data : gameFor();
+      const session = store.create(chosenGame, "online", isPrivate ? "private" : "open");
       const playerId = randomUUID();
       session.hostId = playerId;
       socket.data.playerId = playerId;

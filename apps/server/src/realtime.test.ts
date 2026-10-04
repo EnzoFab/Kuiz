@@ -14,6 +14,7 @@ interface JoinResult {
   playerId?: string;
   hostId?: string;
   joinMode?: string;
+  game?: { title?: string };
   error?: string;
 }
 
@@ -90,6 +91,32 @@ describe("realtime lifecycle", () => {
 
     host.close();
     p2.close();
+  });
+
+  it("hosts a client-supplied Game from the catalog (B17)", async () => {
+    const host = await connect();
+    const customGame = {
+      schemaVersion: 1,
+      id: "catalog-pick",
+      title: "Catalog Pick",
+      meta: { createdAt: new Date().toISOString() },
+      root: {
+        id: "root",
+        kind: "group",
+        scoring: { aggregation: "sum_points" },
+        children: [
+          {
+            id: "only",
+            kind: "brick",
+            scoring: { basePoints: 10 },
+            brick: { type: "question", config: { prompt: "1+1?", answerType: "free_text", answer: "2" } },
+          },
+        ],
+      },
+    };
+    const created = await emit<JoinResult>(host, "create", { nickname: "GM", game: customGame });
+    expect(created.game?.title).toBe("Catalog Pick");
+    host.close();
   });
 
   it("ignores a non-host trying to START (server-authoritative)", async () => {

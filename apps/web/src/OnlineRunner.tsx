@@ -41,12 +41,15 @@ export function OnlineRunner({
   code,
   nickname,
   roster,
+  hostGame,
   onExit,
 }: {
   intent: "host" | "join" | "watch";
   code?: string;
   nickname: string;
   roster?: string[];
+  /** The Game to host (chosen from the catalog). Omitted → the server's default demo. */
+  hostGame?: Game;
   onExit: () => void;
 }) {
   const socketRef = useRef<Socket | null>(null);
@@ -90,7 +93,7 @@ export function OnlineRunner({
     );
     socket.on("connect", () => {
       if (intent === "host") {
-        socket.emit("create", { nickname, roster }, handleResult);
+        socket.emit("create", { nickname, roster, game: hostGame }, handleResult);
       } else if (intent === "watch") {
         socket.emit("watch", { code }, (res: JoinResult) => {
           handleResult(res);

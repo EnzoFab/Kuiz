@@ -53,6 +53,10 @@ gh issue list --repo EnzoFab/Kuiz --state open --label build \
   stdlib, needless deps, speculative abstractions, dead flexibility). Apply the findings worth
   applying; note any deliberately skipped.
 - New out-of-plan work → a new `build` issue on the board, don't scope-creep a step.
+- **PR screenshots**: for a PR with a user-facing UI change, **after** opening the PR (never
+  block its creation waiting on this), ask the user whether they'd like app screenshots added.
+  Only if they say yes: generate them headlessly (`pnpm --filter @kuiz/web shots`) and attach
+  to the PR. Don't commit screenshots or edit the PR pre-emptively.
 
 ## Code style (write for a human reader)
 
