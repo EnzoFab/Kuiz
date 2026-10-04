@@ -1,29 +1,36 @@
-import { test } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 
 /**
- * Walks the catalog flow (B17) and captures a screenshot of each screen. Doubles as a smoke
- * test — if a selector stops matching, the run fails. Add a step here when a change is worth
- * showing in a PR. Output: apps/web/screenshots/NN-*.png.
+ * Walks the catalog flow (B17) and plays each B18 template end-to-end. Doubles as a smoke
+ * test — if a selector stops matching, the run fails. Captures screenshots for PRs along the
+ * way. Output: apps/web/screenshots/NN-*.png.
  *
- * Covers device-play from the catalog (no backend needed). Online hosting of a chosen
- * template is covered by the server unit test (realtime.test.ts, "hosts a client-supplied
- * Game"), since it needs the socket server running.
+ * Device-play only (no backend needed); online hosting of a chosen template is covered by
+ * the server unit test (realtime.test.ts, "hosts a client-supplied Game").
  */
 const DIR = "screenshots";
 
-test("catalog → play", async ({ page }) => {
+async function playFromCatalog(page: import("@playwright/test").Page, title: string) {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Browse catalog" }).click();
+  await page.getByRole("heading", { name: "Catalog" }).waitFor();
+  await page.locator("li", { hasText: title }).getByRole("button", { name: "This device" }).click();
+  await expect(page.getByRole("button", { name: "Reveal" })).toBeVisible();
+}
+
+test("catalog → play Simple Quiz", async ({ page }) => {
   await page.goto("/");
   await page.screenshot({ path: `${DIR}/01-menu.png` });
-
   await page.getByRole("button", { name: "Browse catalog" }).click();
   await page.getByRole("heading", { name: "Catalog" }).waitFor();
   await page.screenshot({ path: `${DIR}/02-catalog.png`, fullPage: true });
 
-  // Start the "Friday Night Quiz" template on this device.
-  await page
-    .locator("li", { hasText: "Friday Night Quiz" })
-    .getByRole("button", { name: "This device" })
-    .click();
-  await page.getByText("Reveal").waitFor();
-  await page.screenshot({ path: `${DIR}/03-play-from-catalog.png` });
+  await page.locator("li", { hasText: "Simple Quiz" }).getByRole("button", { name: "This device" }).click();
+  await expect(page.getByRole("button", { name: "Reveal" })).toBeVisible();
+  await page.screenshot({ path: `${DIR}/03-play-simple-quiz.png` });
+});
+
+test("catalog → play Themed A–Z", async ({ page }) => {
+  await playFromCatalog(page, "Themed A–Z: Capitals");
+  await page.screenshot({ path: `${DIR}/04-play-az.png` });
 });

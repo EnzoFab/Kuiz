@@ -6,46 +6,119 @@ import { parseGame, type Game } from "@kuiz/core";
  * model #9); logged-in/DB-catalog saving comes with accounts later.
  */
 
+/**
+ * B18 Segment-Type templates, composed purely from existing Bricks (no new code):
+ *  - Simple Quiz — a short mixed-format general-knowledge round.
+ *  - Themed A–Z — a themed round whose answers run A, B, C… (here: world capitals A–E).
+ * Both are whole-game templates for v1 (standalone, playable end-to-end); inserting them as
+ * sub-games into a larger Game awaits the nested composer. See docs/spec/authoring-model.md.
+ */
 const TEMPLATE_GAMES: Game[] = [
   parseGame({
     schemaVersion: 1,
-    id: "template-friday-quiz",
-    title: "Friday Night Quiz",
-    meta: { createdAt: new Date().toISOString() },
+    id: "template-simple-quiz",
+    title: "Simple Quiz",
+    meta: {
+      createdAt: new Date().toISOString(),
+      description: "A short mixed-format quiz: select, true/false, text and multi-select.",
+    },
     root: {
       id: "root",
       kind: "group",
       scoring: { aggregation: "sum_points" },
       children: [
         {
-          id: "q1",
+          id: "q-planet",
           kind: "brick",
           scoring: { basePoints: 10 },
           brick: {
             type: "question",
             config: {
-              prompt: "Capital of France?",
+              prompt: "Which planet is known as the Red Planet?",
               answerType: "single_select",
-              options: ["Paris", "Lyon", "Nice"],
-              answer: "Paris",
+              options: ["Mars", "Venus", "Jupiter"],
+              answer: "Mars",
             },
           },
         },
         {
-          id: "q2",
+          id: "q-wall",
+          kind: "brick",
+          scoring: { basePoints: 10 },
+          brick: {
+            type: "question",
+            config: {
+              prompt: "The Great Wall of China is visible from space with the naked eye.",
+              answerType: "true_false",
+              answer: false,
+            },
+          },
+        },
+        {
+          id: "q-water",
           kind: "brick",
           scoring: { basePoints: 10, grading: "scaled" },
           brick: {
             type: "question",
             config: {
-              prompt: "Who painted the Mona Lisa?",
+              prompt: "What is the chemical symbol for water?",
               answerType: "free_text",
-              answer: "Leonardo da Vinci",
+              answer: "H2O",
               answerCheck: { strategy: "fuzzy", threshold: 0.8 },
             },
           },
         },
+        {
+          id: "q-primary",
+          kind: "brick",
+          scoring: { basePoints: 10 },
+          brick: {
+            type: "question",
+            config: {
+              prompt: "Which of these are primary colours (paint)?",
+              answerType: "multiple_select",
+              options: ["Red", "Green", "Blue", "Yellow"],
+              answer: ["Red", "Blue", "Yellow"],
+            },
+          },
+        },
       ],
+    },
+  }),
+  parseGame({
+    schemaVersion: 1,
+    id: "template-az-capitals",
+    title: "Themed A–Z: Capitals",
+    meta: {
+      createdAt: new Date().toISOString(),
+      description: "Name the capital — the answers run A, B, C, D, E.",
+    },
+    root: {
+      id: "root",
+      kind: "group",
+      scoring: { aggregation: "sum_points" },
+      children: (
+        [
+          ["a", "Greece", "Athens"],
+          ["b", "Germany", "Berlin"],
+          ["c", "Egypt", "Cairo"],
+          ["d", "Ireland", "Dublin"],
+          ["e", "Scotland", "Edinburgh"],
+        ] as const
+      ).map(([letter, country, capital]) => ({
+        id: `az-${letter}`,
+        kind: "brick",
+        scoring: { basePoints: 10, grading: "scaled" },
+        brick: {
+          type: "question",
+          config: {
+            prompt: `${letter.toUpperCase()} — Capital of ${country}?`,
+            answerType: "free_text",
+            answer: capital,
+            answerCheck: { strategy: "fuzzy", threshold: 0.8 },
+          },
+        },
+      })),
     },
   }),
 ];
