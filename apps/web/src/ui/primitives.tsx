@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes } from "react";
 import { cn } from "./cn";
 
 /**
@@ -54,4 +54,17 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
 
 export function Checkbox({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return <input type="checkbox" className={cn("h-5 w-5 accent-primary", className)} {...props} />;
+}
+
+export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select
+      className={cn(
+        "w-full rounded-xl border border-border bg-card px-4 py-3 text-base outline-none",
+        "focus:border-primary disabled:opacity-40",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
