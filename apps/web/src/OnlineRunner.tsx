@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { brickRegistry } from "@kuiz/bricks";
-import { orderedLeaves, type Game, type SessionEvent, type SessionState } from "@kuiz/core";
+import type { Game, SessionEvent, SessionState } from "@kuiz/core";
 import type { Socket } from "socket.io-client";
 import { connectSocket } from "./lib/socket";
 import { Button, Card } from "./ui";
-import { brickViews } from "./bricks/views";
+import { currentBrick } from "./lib/currentBrick";
 
 interface JoinResult {
   sessionId?: string;
@@ -182,12 +181,7 @@ export function OnlineRunner({
   }
   const myId = me.playerId;
   const isHost = me.hostId === myId;
-  const leaves = orderedLeaves(game.root);
-  const index = leaves.findIndex((l) => l.id === state.cursor);
-  const current = leaves[index];
-  const logic = current ? brickRegistry.logic(current.brick.type) : null;
-  const isRevealed = logic ? logic.isComplete(state.brickState) : false;
-  const view = current ? brickViews[current.brick.type] : null;
+  const { current, isRevealed, view } = currentBrick(game, state);
 
   return (
     <div className="mx-auto max-w-xl space-y-5 p-4">

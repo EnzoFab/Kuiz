@@ -1,15 +1,8 @@
 import { useMemo, useReducer } from "react";
-import {
-  initSession,
-  orderedLeaves,
-  reduceSession,
-  type Game,
-  type SessionEvent,
-  type SessionState,
-} from "@kuiz/core";
+import { initSession, reduceSession, type Game, type SessionEvent, type SessionState } from "@kuiz/core";
 import { brickRegistry } from "@kuiz/bricks";
 import { Button, Card } from "./ui";
-import { brickViews } from "./bricks/views";
+import { currentBrick } from "./lib/currentBrick";
 
 const PLAYER = "You";
 
@@ -27,12 +20,7 @@ export function GameRunner({ game }: { game: Game }) {
     () => reduceSession(game, initSession(game, { mode: "offline" }), { type: "START" }, deps),
   );
 
-  const leaves = orderedLeaves(game.root);
-  const index = leaves.findIndex((l) => l.id === state.cursor);
-  const current = leaves[index];
-  const logic = current ? brickRegistry.logic(current.brick.type) : null;
-  const isComplete = logic ? logic.isComplete(state.brickState) : false;
-  const view = current ? brickViews[current.brick.type] : null;
+  const { leaves, index, current, isRevealed, view } = currentBrick(game, state);
 
   return (
     <div className="mx-auto max-w-xl space-y-5 p-4">
@@ -51,7 +39,7 @@ export function GameRunner({ game }: { game: Game }) {
             <view.Play
               config={current.brick.config}
               state={state.brickState}
-              isRevealed={isComplete}
+              isRevealed={isRevealed}
               player={PLAYER}
               onEvent={dispatch}
             />
@@ -60,14 +48,14 @@ export function GameRunner({ game }: { game: Game }) {
             <Button
               variant="outline"
               className="flex-1"
-              disabled={isComplete}
+              disabled={isRevealed}
               onClick={() => dispatch({ type: "REVEAL" })}
             >
               Reveal
             </Button>
             <Button
               className="flex-1"
-              disabled={!isComplete}
+              disabled={!isRevealed}
               onClick={() => dispatch({ type: "ADVANCE", source: "host" })}
             >
               Next

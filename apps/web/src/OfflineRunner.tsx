@@ -1,15 +1,8 @@
 import { useMemo, useState } from "react";
-import {
-  initSession,
-  orderedLeaves,
-  reduceSession,
-  type Game,
-  type SessionEvent,
-  type SessionState,
-} from "@kuiz/core";
+import { initSession, reduceSession, type Game, type SessionEvent, type SessionState } from "@kuiz/core";
 import { brickRegistry } from "@kuiz/bricks";
 import { Button, Card } from "./ui";
-import { brickViews } from "./bricks/views";
+import { currentBrick } from "./lib/currentBrick";
 
 const HOST = "host";
 
@@ -36,12 +29,7 @@ export function OfflineRunner({ game, onExit }: { game: Game; onExit?: () => voi
     setHistory((h) => (h.length > 1 ? h.slice(0, -1) : h));
   };
 
-  const leaves = orderedLeaves(game.root);
-  const index = leaves.findIndex((l) => l.id === state.cursor);
-  const current = leaves[index];
-  const logic = current ? brickRegistry.logic(current.brick.type) : null;
-  const isRevealed = logic ? logic.isComplete(state.brickState) : false;
-  const view = current ? brickViews[current.brick.type] : null;
+  const { leaves, index, current, isRevealed, view } = currentBrick(game, state);
 
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-6">
